@@ -1,0 +1,83 @@
+# code	text
+bb	Biu
+y	有
+i	中
+l	来
+u	上
+d	大
+w	为
+g	国
+d	地
+d	到
+y	以
+u	说
+u	时
+y	要
+h	会
+
+# 高频口语/虚词短词。优先用空二码；二码会压到常用单字时用三码。
+um	什么
+wm	我们
+tm	他们
+zm	怎么
+im	这么
+ju	就是
+kn	可能
+rg	如果
+yw	因为
+yx	一下
+xy	需要
+xz	现在
+yg	应该
+wt	问题
+wum	为什么
+nme	那么
+nmz	你们
+nge	那个
+nge	哪个
+ixv	这些
+nxv	那些
+iys	这样
+nys	那样
+myt	没有
+hyt	还有
+bun	不是
+kyn	可以
+syn	所以
+dun	但是
+rht	然后
+uht	时候
+uja	时间
+idc	知道
+jde	觉得
+gzu	工作
+sp	这个
+bk	已经
+eb	还是
+
+# “什么”系常用问句/短语，按前三字首源缩短。
+yum	有什么
+mum	没什么
+uum	是什么
+gum	干什么
+zum	做什么
+jum	叫什么
+kum	看什么
+vum	吃什么
+dum	点什么
+
+# 常用 A不A 结构。
+ubu	是不是
+bid	不知道
+ymy	有没有
+xbx	行不行
+inxl	执行
+
+# “怎么”系。
+zmy	怎么样
+zmb	怎么办
+zml	怎么了
+zmu	怎么说
+
+# 趋势表达。
+yly	越来越
