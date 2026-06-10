@@ -6,10 +6,6 @@ import argparse
 from pathlib import Path
 
 from char_frequency import CharFrequency, ReadingFrequency
-from derive_thmy_table import (
-    source_initial_for_remapped_key,
-    source_sound_for_remapped_code,
-)
 
 
 def read_entries(path: Path) -> list[tuple[str, str]]:
@@ -58,14 +54,14 @@ def write_rime_dict(
     for index, (text, code) in enumerate(entries):
         weight = char_frequency.rime_weight(text, index, total_entries)
         if len(text) == 1 and code and reading_frequency is not None:
-            reading_sound_code = source_sound_for_remapped_code(code)
+            reading_sound_code = code[:2] if len(code) >= 2 else None
             if reading_sound_code is not None:
                 reading_weight = reading_frequency.sound_weight(text, reading_sound_code)
                 is_substantial = reading_frequency.is_substantial_sound(
                     text, reading_sound_code
                 )
             else:
-                reading_key = source_initial_for_remapped_key(code[0])
+                reading_key = code[0]
                 reading_weight = reading_frequency.weight(text, reading_key)
                 is_substantial = reading_frequency.is_substantial(text, reading_key)
 

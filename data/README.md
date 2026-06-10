@@ -35,14 +35,7 @@ the `o` key from `哦/o`.
 
 Columns are `character<TAB>sit_initial_key<TAB>source_weight<TAB>pinyin`.
 
-## `yehe_sound_shape.tsv`
+## Shape Codes
 
-Yehe sound-shape single-character entries used as the primary single-character
-source for `thmy`.
-
-- Source: <https://github.com/qqj-jj/yehe>
-- Upstream file: `野鹤.txt`
-- Extracted scope: no-prefix sound-shape entries only
-- Excluded scopes: `!` component composition codes and `/` stroke codes
-
-Columns are `code<TAB>character`.
+No shape-code source is bundled in the current rebuild. Shape codes should be
+added later from a native `thmy` design, not inherited from an external table.

@@ -7,10 +7,6 @@ import sys
 from pathlib import Path
 
 from char_frequency import CharFrequency, ReadingFrequency, table_sort_key
-from derive_thmy_table import (
-    source_initial_for_remapped_key,
-    source_sound_for_remapped_code,
-)
 
 
 def main() -> int:
@@ -64,10 +60,8 @@ def main() -> int:
             if identity in seen_entries:
                 continue
             seen_entries.add(identity)
-        reading_key = source_initial_for_remapped_key(code[0]) if code else None
-        reading_sound_code = (
-            source_sound_for_remapped_code(code) if len(text) == 1 else None
-        )
+        reading_key = code[0] if code else None
+        reading_sound_code = code[:2] if len(text) == 1 and len(code) >= 2 else None
         entries.append(
             (
                 table_sort_key(

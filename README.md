@@ -12,7 +12,7 @@
 - `rime/thmy.dict.yaml`: Rime 词典
 - `android/`: Trime 用方案、词典和 Dvorak 键盘主题
 - `windows/`: Weasel 用方案和词典
-- `data/`: 野鹤单字源、字频、多音字读音频率和自定义词条
+- `data/`: 字频、多音字读音频率、词条来源和自定义词条
 - `scripts/`: 离线构建脚本
 
 ## 构建
@@ -53,11 +53,11 @@ Android 同文可使用：
 
 ## 设计状态
 
-- 先音后形，面向 Dvorak 手感
-- 单字主源来自 `data/yehe_sound_shape.tsv`
+- 当前重构版先只保留音码，形码暂留空，后续接入团码自己的形码表
+- 单字读音主源来自 `data/hanzi_reading_frequency_baishuang_8105.tsv`
 - 每个首码生成一个一简字，低频副读音不抢一键码位
-- 单字保留前两码简码和完整四码
+- 单字保留一简和两码音码
 - 词条保留四码压缩词码，并额外生成完整纯双拼音码
 - `;` 作为辅助码分隔符，`/` 作为笔画反查入口
 
-后续重构建议优先从 `scripts/build_thmy_from_yehe.py` 和 `scripts/derive_thmy_table.py` 开始。
+后续重构建议优先从 `scripts/build_thmy.py` 开始。

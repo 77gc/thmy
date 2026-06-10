@@ -7,7 +7,7 @@ from typing import Optional, Union
 
 MIN_SUBSTANTIAL_READING_WEIGHT = 1000
 
-PINYIN_INITIAL_TO_YEHE = {
+PINYIN_INITIAL_TO_THMY = {
     "b": "b",
     "p": "p",
     "m": "m",
@@ -28,66 +28,66 @@ PINYIN_INITIAL_TO_YEHE = {
     "s": "s",
     "y": "y",
     "w": "w",
-    "zh": "v",
-    "ch": "i",
+    "zh": "i",
+    "ch": "v",
     "sh": "u",
 }
-PINYIN_FINAL_TO_YEHE = {
-    "a": "a",
-    "ai": "d",
-    "an": "j",
-    "ang": "h",
-    "ao": "c",
+PINYIN_FINAL_TO_THMY = {
+    "a": "y",
+    "ai": "x",
+    "an": "o",
+    "ang": "s",
+    "ao": "a",
     "e": "e",
-    "ei": "w",
-    "en": "f",
-    "eng": "g",
-    "er": "r",
-    "i": "i",
-    "ia": "x",
-    "ian": "m",
-    "iang": "l",
-    "iao": "n",
-    "ie": "p",
-    "in": "b",
-    "ing": "k",
-    "iong": "s",
-    "iu": "q",
-    "o": "o",
-    "ong": "s",
-    "ou": "z",
-    "u": "u",
-    "ua": "x",
-    "uai": "k",
-    "uan": "r",
-    "uang": "l",
-    "ue": "t",
-    "ui": "v",
-    "un": "y",
-    "uo": "o",
-    "v": "v",
-    "ve": "t",
+    "ei": "p",
+    "en": "z",
+    "eng": "i",
+    "er": "h",
+    "i": "n",
+    "ia": "w",
+    "ian": "c",
+    "iang": "g",
+    "iao": "r",
+    "ie": "v",
+    "in": "m",
+    "ing": "l",
+    "iong": "q",
+    "iu": "b",
+    "o": "u",
+    "ong": "q",
+    "ou": "t",
+    "u": "j",
+    "ua": "w",
+    "uai": "l",
+    "uan": "h",
+    "uang": "g",
+    "ue": "f",
+    "ui": "k",
+    "un": "d",
+    "uo": "u",
+    "v": "k",
+    "ve": "f",
 }
-ZERO_INITIAL_PINYIN_TO_YEHE = {
-    "a": "aa",
-    "ai": "ai",
-    "an": "an",
-    "ang": "ah",
-    "ao": "ao",
+ZERO_INITIAL_PINYIN_TO_THMY = {
+    "a": "ay",
+    "ai": "an",
+    "an": "ar",
+    "ang": "as",
+    "ao": "au",
     "e": "ee",
-    "ei": "ei",
-    "en": "en",
-    "eng": "eg",
-    "er": "er",
-    "o": "oo",
-    "ou": "ou",
+    "ei": "en",
+    "en": "er",
+    "eng": "ai",
+    "er": "ah",
+    "o": "ou",
+    "ou": "oj",
 }
 
 
-def pinyin_to_yehe_sound_code(pinyin: str) -> Optional[str]:
+def pinyin_to_sound_code(pinyin: str) -> Optional[str]:
     normalized = pinyin.lower().replace("ü", "v")
-    if normalized in ZERO_INITIAL_PINYIN_TO_YEHE:
-        return ZERO_INITIAL_PINYIN_TO_YEHE[normalized]
+    if normalized in ZERO_INITIAL_PINYIN_TO_THMY:
+        return ZERO_INITIAL_PINYIN_TO_THMY[normalized]
 
     for initial in ("zh", "ch", "sh"):
         if normalized.startswith(initial):
@@ -97,8 +97,8 @@ def pinyin_to_yehe_sound_code(pinyin: str) -> Optional[str]:
         initial = normalized[:1]
         final = normalized[1:]
 
-    initial_code = PINYIN_INITIAL_TO_YEHE.get(initial)
-    final_code = PINYIN_FINAL_TO_YEHE.get(final)
+    initial_code = PINYIN_INITIAL_TO_THMY.get(initial)
+    final_code = PINYIN_FINAL_TO_THMY.get(final)
     if initial_code is None or final_code is None:
         return None
     return initial_code + final_code
@@ -156,13 +156,10 @@ class ReadingFrequency:
         for line in Path(path).read_text(encoding="utf-8").splitlines():
             if not line or line.startswith("#"):
                 continue
-            char, key, weight_text, *rest = line.split("\t")
-            if len(char) != 1 or len(key) != 1:
+            char, source_key, weight_text, *rest = line.split("\t")
+            if len(char) != 1:
                 continue
             weight = int(weight_text)
-            identity = (char, key)
-            weights[identity] = max(weight, weights.get(identity, 0))
-            max_weights[char] = max(weight, max_weights.get(char, 0))
             if rest:
                 pinyin = rest[0].strip()
                 if pinyin:
@@ -170,12 +167,18 @@ class ReadingFrequency:
                     pinyin_weights[pinyin_identity] = max(
                         weight, pinyin_weights.get(pinyin_identity, 0)
                     )
-                    sound_code = pinyin_to_yehe_sound_code(pinyin)
+                    sound_code = pinyin_to_sound_code(pinyin)
                     if sound_code is not None:
+                        identity = (char, sound_code[0])
+                        weights[identity] = max(weight, weights.get(identity, 0))
                         sound_identity = (char, sound_code)
                         sound_weights[sound_identity] = max(
                             weight, sound_weights.get(sound_identity, 0)
                         )
+            elif len(source_key) == 1:
+                identity = (char, source_key)
+                weights[identity] = max(weight, weights.get(identity, 0))
+            max_weights[char] = max(weight, max_weights.get(char, 0))
         return cls(
             weights=weights,
             max_weights=max_weights,
