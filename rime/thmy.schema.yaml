@@ -47,13 +47,12 @@ translator:
     - "xform/^[a-z]{2}([a-z]{2})$/$1/"
 
 menu:
-  page_size: 5
+  page_size: 4
   alternative_select_labels:
     - " "
     - "'"
     - ","
     - "."
-    - "5"
 
 recognizer:
   import_preset: default

@@ -67,6 +67,8 @@ def write_rime_dict(
 
             if reading_weight is None or not is_substantial:
                 weight = 100 + (reading_weight or 0)
+            else:
+                weight += reading_weight
         output.append(f"{text}\t{code}\t{weight}")
 
     output_path.write_text("\n".join(output) + "\n", encoding="utf-8")

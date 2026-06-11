@@ -111,6 +111,21 @@ def primary_sound_codes(reading_frequency: ReadingFrequency) -> dict[str, str]:
     return primary_codes
 
 
+def substantial_sound_codes(reading_frequency: ReadingFrequency) -> dict[str, list[str]]:
+    codes: dict[str, list[tuple[tuple[object, ...], str]]] = {}
+    for (text, sound_code), weight in reading_frequency.sound_weights.items():
+        if not reading_frequency.is_substantial_sound(text, sound_code):
+            continue
+        sort_key: tuple[object, ...] = (-weight, sound_code)
+        codes.setdefault(text, []).append((sort_key, sound_code))
+
+    output: dict[str, list[str]] = {}
+    for text, text_codes in codes.items():
+        text_codes.sort(key=lambda item: item[0])
+        output[text] = [sound_code for _sort_key, sound_code in text_codes]
+    return output
+
+
 def phrase_char_codes(
     text: str,
     char_codes: dict[str, str],
@@ -248,6 +263,7 @@ def main() -> int:
     char_frequency = CharFrequency.load(args.char_frequency)
     reading_frequency = ReadingFrequency.load(args.reading_frequency)
     primary_codes = primary_sound_codes(reading_frequency)
+    single_char_codes = substantial_sound_codes(reading_frequency)
     phrase_reading_overrides: dict[str, dict[str, str]] = {}
     for override_path in args.phrase_reading_overrides:
         phrase_reading_overrides.update(
@@ -275,12 +291,13 @@ def main() -> int:
         one_key_count += 1
 
     for text, code in primary_codes.items():
-        item = (code, text)
-        if item in seen_output:
-            continue
-        seen_output.add(item)
-        output.append(f"{code}\t{text}")
-        char_sound_count += 1
+        for single_code in single_char_codes.get(text, [code]):
+            item = (single_code, text)
+            if item in seen_output:
+                continue
+            seen_output.add(item)
+            output.append(f"{single_code}\t{text}")
+            char_sound_count += 1
 
     for custom_entries in args.custom_entries:
         for code, text in iter_custom_entries(Path(custom_entries)):

@@ -30,6 +30,17 @@ sh scripts/build.sh
 - `android/thmy.dict.yaml`
 - `windows/thmy.dict.yaml`
 
+## macOS 部署
+
+部署到鼠须管：
+
+```sh
+scripts/deploy-macos-rime.sh
+```
+
+脚本会先构建，再复制 `thmy.schema.yaml` 和 `thmy.dict.yaml` 到
+`~/Library/Rime/`，最后只编译 `thmy` 方案，避免其他旧方案的全量部署错误。
+
 ## 手动安装
 
 macOS 鼠须管可复制这些文件到 `~/Library/Rime/` 后重新部署：
