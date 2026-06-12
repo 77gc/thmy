@@ -247,7 +247,10 @@ def table_sort_key(
         else:
             reading_weight = None
             is_substantial = False
-        if reading_weight is None:
+        if reading_weight is None and len(code) == 1:
+            reading_priority = 0
+            reading_weight_sort = -reading_frequency.max_weights.get(text, 0)
+        elif reading_weight is None:
             reading_priority = 2
         else:
             reading_priority = 0 if is_substantial else 1

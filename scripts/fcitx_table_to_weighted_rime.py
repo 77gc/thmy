@@ -65,7 +65,9 @@ def write_rime_dict(
                 reading_weight = reading_frequency.weight(text, reading_key)
                 is_substantial = reading_frequency.is_substantial(text, reading_key)
 
-            if reading_weight is None or not is_substantial:
+            if len(code) == 1 and reading_weight is None:
+                weight += reading_frequency.max_weights.get(text, 0)
+            elif reading_weight is None or not is_substantial:
                 weight = 100 + (reading_weight or 0)
             else:
                 weight += reading_weight

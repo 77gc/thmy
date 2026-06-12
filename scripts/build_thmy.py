@@ -282,6 +282,16 @@ def main() -> int:
         reading_frequency,
         overrides={"m": "没", "o": "喔"},
     )
+    one_key_aliases = {"e": "的"}
+
+    for key, text in sorted(one_key_aliases.items()):
+        item = (key, text)
+        if item in seen_output:
+            continue
+        seen_output.add(item)
+        output.append(f"{key}\t{text}")
+        one_key_count += 1
+
     for key, (_full_code, text) in sorted(one_keys.items()):
         item = (key, text)
         if item in seen_output:
