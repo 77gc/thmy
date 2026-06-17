@@ -324,14 +324,11 @@ preset_keyboards:
       - {click: w, hint: "ia/ua", key_back_color: bgray, key_text_color: th3, swipe_up: W}
       - {click: v, hint: "ie", key_back_color: bdark, key_text_color: th3, long_click: paste_clip, swipe_up: V}
       - {click: z, hint: "en", key_back_color: bgray, key_text_color: th3, long_click: undo, swipe_up: Z}
-      - {click: "=", key_back_color: bdark, key_text_color: th1, long_click: "+"}
-      - {click: "-", key_back_color: bdark, key_text_color: th1, long_click: "_"}
-      - {click: ":", key_back_color: bdark, key_text_color: th1, long_click: ";"}
-      - {click: space, key_back_color: bkg, key_text_color: tkg, long_click: Keyboard_defaulten, swipe_left: Left, swipe_right: Right, label: "keydog", width: 33}
-      - {click: Left, key_back_color: bdark, key_text_color: th1, width: 9}
-      - {click: Down, key_back_color: bdark, key_text_color: th2, width: 9}
-      - {click: Up, key_back_color: bdark, key_text_color: th3, width: 9}
-      - {click: Right, key_back_color: bdark, key_text_color: th3, width: 9}
+      - {click: "=", key_back_color: bdark, key_text_color: th1, long_click: "+", width: 10}
+      - {click: "-", key_back_color: bdark, key_text_color: th1, long_click: "_", width: 10}
+      - {click: ":", key_back_color: bdark, key_text_color: th1, long_click: ";", width: 10}
+      - {click: space, key_back_color: bkg, key_text_color: tkg, long_click: Keyboard_defaulten, swipe_left: Left, swipe_right: Right, label: "keydog", width: 50}
+      - {click: Return, composing: Return1, key_back_color: benter, key_text_color: tenter, swipe_up: Escape, width: 20}
     name: "thmy dvorak"
     width: 10
   default_legacy:

@@ -63585,6 +63585,7 @@ xcbx	显摆
 xcby	下次吧
 xcca	仙草
 xccd	现存
+xccd	冼村
 xcce	献策
 xccx	咸菜
 xcde	显得
