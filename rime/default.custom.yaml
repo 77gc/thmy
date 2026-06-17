@@ -1,3 +1,4 @@
 patch:
   schema_list:
     - schema: thmy
+    - schema: thmy_jj

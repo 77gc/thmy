@@ -43,6 +43,7 @@ translator:
   enable_user_dict: false
   spelling_hints: 1
   comment_format:
+    - "xform/^[a-z]{2}([a-z])$/$1/"
     - "xform/^[a-z]{2}([a-z]{2})$/$1/"
 
 menu:

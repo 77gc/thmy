@@ -15,6 +15,63 @@ from char_frequency import (
 
 
 MAX_PURE_PHRASE_CODE_LENGTH = 32
+DVORAK_LEFT_KEYS = set("pyaoeuiqjkx")
+DVORAK_FINGERS = {
+    "a": "L5",
+    "o": "L4",
+    "q": "L4",
+    "e": "L3",
+    "j": "L3",
+    "p": "L2",
+    "u": "L2",
+    "k": "L2",
+    "y": "L2",
+    "i": "L2",
+    "x": "L2",
+    "f": "R2",
+    "d": "R2",
+    "g": "R2",
+    "b": "R2",
+    "h": "R2",
+    "m": "R2",
+    "c": "R3",
+    "t": "R3",
+    "w": "R3",
+    "r": "R4",
+    "n": "R4",
+    "v": "R4",
+    "l": "R5",
+    "s": "R5",
+    "z": "R5",
+}
+DVORAK_POSITIONS = {
+    "p": (0, 3),
+    "y": (0, 4),
+    "f": (0, 5),
+    "g": (0, 6),
+    "c": (0, 7),
+    "r": (0, 8),
+    "l": (0, 9),
+    "a": (1, 0),
+    "o": (1, 1),
+    "e": (1, 2),
+    "u": (1, 3),
+    "i": (1, 4),
+    "d": (1, 5),
+    "h": (1, 6),
+    "t": (1, 7),
+    "n": (1, 8),
+    "s": (1, 9),
+    "q": (2, 1),
+    "j": (2, 2),
+    "k": (2, 3),
+    "x": (2, 4),
+    "b": (2, 5),
+    "m": (2, 6),
+    "w": (2, 7),
+    "v": (2, 8),
+    "z": (2, 9),
+}
 HEADER = """;fcitx Version 0x03 Table file
 KeyCode=abcdefghijklmnopqrstuvwxyz
 Length=32
@@ -62,6 +119,64 @@ def iter_custom_entries(path: Path) -> list[tuple[str, str]]:
             raise ValueError(f"invalid custom entry code {path}:{line_number}: {code}")
         entries.append((code, text))
     return entries
+
+
+def dvorak_hand(key: str) -> str:
+    return "L" if key in DVORAK_LEFT_KEYS else "R"
+
+
+def dvorak_distance(left: str, right: str) -> int:
+    left_row, left_col = DVORAK_POSITIONS[left]
+    right_row, right_col = DVORAK_POSITIONS[right]
+    return abs(left_row - right_row) + abs(left_col - right_col)
+
+
+def aux_comfort_key(sound_code: str, aux_code: str) -> tuple[object, ...]:
+    code = sound_code + aux_code
+    same_hand = 0
+    same_finger = 0
+    big_same_finger = 0
+    repeat_key = 0
+    distance = 0
+    for left, right in zip(code, code[1:]):
+        if dvorak_hand(left) == dvorak_hand(right):
+            same_hand += 1
+        if DVORAK_FINGERS[left] == DVORAK_FINGERS[right]:
+            same_finger += 1
+            if dvorak_distance(left, right) >= 2:
+                big_same_finger += 1
+        if left == right:
+            repeat_key += 1
+        distance += dvorak_distance(left, right)
+    return (
+        big_same_finger,
+        same_finger,
+        same_hand,
+        repeat_key,
+        distance,
+        aux_code,
+    )
+
+
+def iter_aux_codes(path: Path) -> dict[str, list[str]]:
+    aux_codes: dict[str, list[str]] = {}
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "\t" not in line:
+            raise ValueError(f"missing tab in aux entry {path}:{line_number}")
+        text, aux_code = line.split("\t", 1)
+        text = text.strip()
+        aux_code = aux_code.strip().lower()
+        if len(text) != 1 or not aux_code:
+            raise ValueError(f"invalid aux entry field {path}:{line_number}")
+        if len(aux_code) > 2:
+            raise ValueError(f"aux code too long {path}:{line_number}: {aux_code}")
+        if not aux_code.isascii() or not aux_code.isalpha():
+            raise ValueError(f"invalid aux code {path}:{line_number}: {aux_code}")
+        aux_codes.setdefault(text, []).append(aux_code)
+    return aux_codes
 
 
 def iter_phrase_reading_overrides(path: Path) -> dict[str, dict[str, str]]:
@@ -252,6 +367,12 @@ def main() -> int:
         help="TSV file with code<TAB>text entries to merge into the table",
     )
     parser.add_argument(
+        "--aux-codes",
+        action="append",
+        default=[],
+        help="TSV file with character<TAB>aux_code entries for sound+shape codes",
+    )
+    parser.add_argument(
         "--phrase-reading-overrides",
         action="append",
         default=[],
@@ -264,6 +385,9 @@ def main() -> int:
     reading_frequency = ReadingFrequency.load(args.reading_frequency)
     primary_codes = primary_sound_codes(reading_frequency)
     single_char_codes = substantial_sound_codes(reading_frequency)
+    aux_codes: dict[str, list[str]] = {}
+    for aux_path in args.aux_codes:
+        aux_codes.update(iter_aux_codes(Path(aux_path)))
     phrase_reading_overrides: dict[str, dict[str, str]] = {}
     for override_path in args.phrase_reading_overrides:
         phrase_reading_overrides.update(
@@ -275,6 +399,7 @@ def main() -> int:
     one_key_count = 0
     char_sound_count = 0
     custom_count = 0
+    aux_count = 0
 
     one_keys = one_key_abbrevs(
         primary_codes,
@@ -308,6 +433,19 @@ def main() -> int:
             seen_output.add(item)
             output.append(f"{single_code}\t{text}")
             char_sound_count += 1
+
+    for text, text_aux_codes in sorted(aux_codes.items()):
+        for sound_code in single_char_codes.get(text, []):
+            aux_code = min(
+                text_aux_codes,
+                key=lambda item: aux_comfort_key(sound_code, item),
+            )
+            item = (f"{sound_code}{aux_code}", text)
+            if item in seen_output:
+                continue
+            seen_output.add(item)
+            output.append(f"{item[0]}\t{item[1]}")
+            aux_count += 1
 
     for custom_entries in args.custom_entries:
         for code, text in iter_custom_entries(Path(custom_entries)):
@@ -357,6 +495,7 @@ def main() -> int:
         f"chars={len(primary_codes)}",
         f"one_key_abbrevs={one_key_count}",
         f"char_sound_codes={char_sound_count}",
+        f"aux_codes={aux_count}",
         f"custom_entries={custom_count}",
         f"phrases={phrase_count}",
         f"pure_phrases={pure_phrase_count}",
