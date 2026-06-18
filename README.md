@@ -106,6 +106,7 @@ Android 同文可使用：
 
 - 当前重构版以音码为主；辅助码源 `data/thmy_aux.tsv` 由 `scripts/generate_thmy_aux.py` 生成
 - 辅助码设计以 Dvorak 手感优先：优先减少同指、大跨度同指和同手连续，同时兼顾左右手、手指负载与常用字分流
+- 辅助码重码按手机候选键优化：允许同码候选落在左上三键加空格的 4 键选择区内，超过 4 候选才显著惩罚
 - 单字读音主源来自 `data/hanzi_reading_frequency_baishuang_8105.tsv`
 - 常用异读可以补入读音表，但备用读音应使用较低权重，避免同一个字同时抢占多个音码首候选
 - 每个首码生成一个一简字，低频副读音不抢一键码位
@@ -131,3 +132,45 @@ uk  水、睡、税、谁
 也就是 `up` 仍是“谁”的主打法；`uk` 可以找到“谁”，但首候选留给“水”。
 
 后续重构建议优先从 `scripts/build_thmy.py` 开始。
+
+## 辅助码循环优化
+
+正式方案固定双拼音码，只训练和生成辅码。音码参与辅码评分，但不作为优化变量，
+这样可以保留现有双拼肌肉记忆，并避免词码和整句方案跟随音码整体漂移。
+
+`scripts/optimize_thmy_aux.py` 可以循环搜索辅码生成参数，流程是：
+
+```text
+生成辅码 -> 统计手感和重码 -> 综合评分 -> 保留最优参数和辅码表
+```
+
+快速烟测：
+
+```bash
+python3 scripts/optimize_thmy_aux.py \
+  --rounds 5 \
+  --char-limit 1200 \
+  --candidate-limit 48 \
+  --report /tmp/thmy_aux_optimize_1200.md
+```
+
+正式搜索：
+
+```bash
+python3 scripts/optimize_thmy_aux.py \
+  --rounds 100 \
+  --candidate-limit 96 \
+  --report data/thmy_aux_optimize_report.md \
+  --output /tmp/thmy_aux_best.tsv
+```
+
+报告会列出最佳 `same_code_slot_weight`、`same_code_overflow_weight`、
+`phrase_code_collision_weight` 和负载权重。评分中也包含靠后的同指长跨键惩罚：
+同键重复、临近和斜向邻键不算，只有同指跨两行的不同键才计入，例如 `yx`、
+`fb`、`px`。确认方案后，应把最佳参数同步到 `scripts/generate_thmy_aux.py`
+的常量，再运行 `sh scripts/build.sh` 生成正式码表。
+
+`scripts/optimize_thmy_sound_aux.py` 是音码也参与变化的实验脚本，只用于评估
+“重排音码 + 重训辅码”的理论空间，不参与正式构建。当前 100 轮实验报告见
+`data/thmy_sound_aux_optimize_report.md`：最佳仍为现有音码不变，说明正式方案
+继续固定音码、只优化辅码。

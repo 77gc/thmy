@@ -60,13 +60,22 @@ Entries generate optional single-character sound+auxiliary codes such as
 `sound_code + aux_code`; Rime accepts the existing `;` delimiter derive rules
 for readable input.
 
+The formal scheme keeps the sound-code layout fixed. Sound codes are used as
+the scoring context for auxiliary-code comfort and collision checks, but the
+generator does not change initials, finals, or zero-initial spellings. The
+experimental `scripts/optimize_thmy_sound_aux.py` report is kept only as a
+reference for why the current build remains sound-code-stable.
+
 Auxiliary codes are arbitrary comfort-first disambiguators rather than shape
-mnemonics. The generator assigns common characters first, avoids same-sound
-collisions, keeps 3/4-code phrase entries from being shadowed when practical,
-and scores candidates in each character's sound-code context. The score
-prioritizes fewer same-finger stretches, large same-finger stretches, repeated
-keys, and same-hand transitions, with lighter penalties for total travel and
-global hand/finger load imbalance.
+mnemonics. The generator assigns common characters first and scores candidates
+in each character's sound-code context. Same-sound collisions and 3/4-code
+phrase collisions are soft penalties instead of hard exclusions, because the
+mobile Dvorak layout has convenient candidate keys in the upper-left three
+positions plus space. The score allows same-code groups inside that four-key
+quick-select area, then sharply penalizes overflow. It prioritizes fewer
+same-finger stretches, large same-finger stretches, repeated keys, and same-hand
+transitions, with lighter penalties for total travel and global hand/finger load
+imbalance.
 
 ## `thmy_aux_reference.md` and `thmy_aux_reference.tsv`
 

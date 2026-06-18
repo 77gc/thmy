@@ -12598,6 +12598,7 @@ etjp	萣
 emk	簟
 dktj	会考
 dktk	回馈
+dkyk	回退
 dktp	汇款
 ebmt	椆
 erwn	亸
@@ -49939,7 +49940,6 @@ ymp	佃
 ymm	阗
 ugmw	赴美
 ymtg	田
-ugma	驸马
 ugmg	父母
 ymsi	甜
 ugml	覆灭
@@ -50473,6 +50473,8 @@ ukjb	风烛残年
 ukkh	发展中国家
 ukko	发展中
 ukky	复制粘贴
+fjmy	辅码
+ugma	驸马
 ukma	辅助码
 ukns	非主流
 uknk	负债率

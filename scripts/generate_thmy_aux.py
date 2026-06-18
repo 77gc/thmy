@@ -11,6 +11,7 @@ from typing import Iterable
 
 from build_thmy import (
     DVORAK_FINGERS,
+    DVORAK_POSITIONS,
     dvorak_distance,
     dvorak_hand,
     iter_custom_entries,
@@ -29,9 +30,13 @@ SINGLE_AUX_CODES = list(LETTERS)
 DOUBLE_AUX_CODES = [left + right for left in LETTERS for right in LETTERS]
 ALL_AUX_CODES = SINGLE_AUX_CODES + DOUBLE_AUX_CODES
 UNRANKED_RANK_OFFSET = 50_000
-AUX_KEY_LOAD_WEIGHT = 0.001125
-AUX_FINGER_LOAD_WEIGHT = 0.000625
-AUX_HAND_LOAD_WEIGHT = 0.000375
+AUX_KEY_LOAD_WEIGHT = 0.00352828
+AUX_FINGER_LOAD_WEIGHT = 0.000115411
+AUX_HAND_LOAD_WEIGHT = 0.000101642
+AUX_QUICK_SELECT_CANDIDATES = 4
+AUX_SAME_CODE_SLOT_WEIGHT = 2_516
+AUX_SAME_CODE_OVERFLOW_WEIGHT = 30_064
+AUX_PHRASE_CODE_COLLISION_WEIGHT = 1_362
 
 
 @dataclass(frozen=True)
@@ -52,6 +57,20 @@ class AuxAssignment:
     score: float
 
 
+def is_same_finger_stretch(
+    left: str,
+    right: str,
+    pair_distance: int | None = None,
+) -> bool:
+    if left == right:
+        return False
+    if DVORAK_FINGERS[left] != DVORAK_FINGERS[right]:
+        return False
+    left_row, _left_col = DVORAK_POSITIONS[left]
+    right_row, _right_col = DVORAK_POSITIONS[right]
+    return abs(left_row - right_row) >= 2
+
+
 def code_metrics(sound_code: str, aux_code: str) -> CodeMetrics:
     code = sound_code + aux_code
     hand_counts = Counter(dvorak_hand(key) for key in code)
@@ -68,7 +87,7 @@ def code_metrics(sound_code: str, aux_code: str) -> CodeMetrics:
             same_hand += 1
         if DVORAK_FINGERS[left] == DVORAK_FINGERS[right]:
             same_finger += 1
-            if pair_distance >= 2:
+            if is_same_finger_stretch(left, right, pair_distance):
                 big_same_finger += 1
         if left == right:
             repeat_key += 1
@@ -103,7 +122,7 @@ def aux_transition_metrics(sound_code: str, aux_code: str) -> CodeMetrics:
             same_hand += 1
         if DVORAK_FINGERS[left] == DVORAK_FINGERS[right]:
             same_finger += 1
-            if pair_distance >= 2:
+            if is_same_finger_stretch(left, right, pair_distance):
                 big_same_finger += 1
         if left == right:
             repeat_key += 1
@@ -189,13 +208,13 @@ def char_priority(
     return (rank, -best_reading_weight, -reading_count, char)
 
 
-def phrase_codes_to_avoid(
+def phrase_code_loads(
     phrase_source: Path,
     custom_entries: list[Path],
     primary_codes: dict[str, str],
     phrase_reading_overrides: dict[str, dict[str, str]],
-) -> set[str]:
-    blocked_codes: set[str] = set()
+) -> Counter[str]:
+    code_loads: Counter[str] = Counter()
 
     for _source_code, text in iter_source_entries(phrase_source):
         if len(text) <= 1:
@@ -205,33 +224,18 @@ def phrase_codes_to_avoid(
             continue
         code = phrase_code(full_codes)
         if code is not None and len(code) in (3, 4):
-            blocked_codes.add(code)
+            code_loads[code] += 1
 
     for custom_path in custom_entries:
         for code, text in iter_custom_entries(custom_path):
             if len(text) > 1 and len(code) in (3, 4):
-                blocked_codes.add(code)
+                code_loads[code] += 1
 
-    return blocked_codes
+    return code_loads
 
 
-def available_aux_codes(
-    char: str,
-    assigned_by_sound: dict[str, dict[str, str]],
-    char_sound_weights: dict[str, dict[str, int]],
-    blocked_phrase_codes: set[str],
-) -> Iterable[str]:
-    for aux_code in ALL_AUX_CODES:
-        is_available = True
-        for sound_code in char_sound_weights[char]:
-            if assigned_by_sound[sound_code].get(aux_code) is not None:
-                is_available = False
-                break
-            if sound_code + aux_code in blocked_phrase_codes:
-                is_available = False
-                break
-        if is_available:
-            yield aux_code
+def available_aux_codes() -> Iterable[str]:
+    yield from ALL_AUX_CODES
 
 
 def load_char_sound_weights(
@@ -245,11 +249,39 @@ def load_char_sound_weights(
     }
 
 
+def soft_collision_score(
+    char: str,
+    aux_code: str,
+    char_sound_weights: dict[str, dict[str, int]],
+    assigned_by_sound: dict[str, Counter[str]],
+    phrase_code_counts: Counter[str],
+) -> float:
+    sound_weights = char_sound_weights[char]
+    total_weight = sum(sound_weights.values()) or 1
+    weighted_score = 0.0
+
+    for sound_code, weight in sound_weights.items():
+        existing_count = assigned_by_sound[sound_code][aux_code]
+        overflow_count = max(
+            0,
+            existing_count + 1 - AUX_QUICK_SELECT_CANDIDATES,
+        )
+        score = (
+            existing_count * AUX_SAME_CODE_SLOT_WEIGHT
+            + overflow_count * overflow_count * AUX_SAME_CODE_OVERFLOW_WEIGHT
+            + phrase_code_counts[sound_code + aux_code]
+            * AUX_PHRASE_CODE_COLLISION_WEIGHT
+        )
+        weighted_score += score * weight
+
+    return weighted_score / total_weight
+
+
 def choose_aux_code(
     char: str,
-    assigned_by_sound: dict[str, dict[str, str]],
+    assigned_by_sound: dict[str, Counter[str]],
     char_sound_weights: dict[str, dict[str, int]],
-    blocked_phrase_codes: set[str],
+    phrase_code_counts: Counter[str],
     aux_key_load: Counter[str],
     aux_finger_load: Counter[str],
     aux_hand_load: Counter[str],
@@ -257,17 +289,22 @@ def choose_aux_code(
     best_assignment: AuxAssignment | None = None
     char_weight = max(char_sound_weights[char].values(), default=1)
 
-    for aux_code in available_aux_codes(
-        char,
-        assigned_by_sound,
-        char_sound_weights,
-        blocked_phrase_codes,
-    ):
+    for aux_code in available_aux_codes():
         score = weighted_metric_score(
             char,
             aux_code,
             char_sound_weights,
-        ) + weighted_aux_transition_score(char, aux_code, char_sound_weights)
+        ) + weighted_aux_transition_score(
+            char,
+            aux_code,
+            char_sound_weights,
+        ) + soft_collision_score(
+            char=char,
+            aux_code=aux_code,
+            char_sound_weights=char_sound_weights,
+            assigned_by_sound=assigned_by_sound,
+            phrase_code_counts=phrase_code_counts,
+        )
         for key in aux_code:
             score += aux_key_load[key] * AUX_KEY_LOAD_WEIGHT
             score += aux_finger_load[DVORAK_FINGERS[key]] * AUX_FINGER_LOAD_WEIGHT
@@ -287,7 +324,7 @@ def choose_aux_code(
         raise RuntimeError(f"no auxiliary code available for {char}")
 
     for sound_code in char_sound_weights[char]:
-        assigned_by_sound[sound_code][best_assignment.aux_code] = char
+        assigned_by_sound[sound_code][best_assignment.aux_code] += 1
     for key in best_assignment.aux_code:
         aux_key_load[key] += char_weight
         aux_finger_load[DVORAK_FINGERS[key]] += char_weight
@@ -304,7 +341,7 @@ def generate_assignments(
 ) -> list[AuxAssignment]:
     primary_codes = primary_sound_codes(reading_frequency)
     char_sound_weights = load_char_sound_weights(reading_frequency)
-    blocked_phrase_codes = phrase_codes_to_avoid(
+    phrase_code_counts = phrase_code_loads(
         phrase_source=phrase_source,
         custom_entries=custom_entries,
         primary_codes=primary_codes,
@@ -318,7 +355,7 @@ def generate_assignments(
             char_sound_weights,
         ),
     )
-    assigned_by_sound: dict[str, dict[str, str]] = defaultdict(dict)
+    assigned_by_sound: dict[str, Counter[str]] = defaultdict(Counter)
     aux_key_load: Counter[str] = Counter()
     aux_finger_load: Counter[str] = Counter()
     aux_hand_load: Counter[str] = Counter()
@@ -330,7 +367,7 @@ def generate_assignments(
                 char=char,
                 assigned_by_sound=assigned_by_sound,
                 char_sound_weights=char_sound_weights,
-                blocked_phrase_codes=blocked_phrase_codes,
+                phrase_code_counts=phrase_code_counts,
                 aux_key_load=aux_key_load,
                 aux_finger_load=aux_finger_load,
                 aux_hand_load=aux_hand_load,
