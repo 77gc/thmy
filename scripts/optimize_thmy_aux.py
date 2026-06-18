@@ -118,6 +118,49 @@ def sample_log_float(rng: random.Random, bounds: tuple[float, float]) -> float:
     return math.exp(rng.uniform(math.log(low), math.log(high)))
 
 
+def clamp_int(value: int, bounds: tuple[int, int]) -> int:
+    low, high = bounds
+    return max(low, min(high, value))
+
+
+def clamp_float(value: float, bounds: tuple[float, float]) -> float:
+    low, high = bounds
+    return max(low, min(high, value))
+
+
+def perturb_log_int(
+    rng: random.Random,
+    value: int,
+    bounds: tuple[int, int],
+    scale: float,
+) -> int:
+    low, high = bounds
+    if low == high:
+        return low
+    if value <= 0 or low <= 0:
+        span = max(high - low, 1)
+        delta = round(rng.gauss(0, span * scale * 0.25))
+        return clamp_int(value + delta, bounds)
+    changed = round(value * math.exp(rng.gauss(0, scale)))
+    return clamp_int(changed, bounds)
+
+
+def perturb_log_float(
+    rng: random.Random,
+    value: float,
+    bounds: tuple[float, float],
+    scale: float,
+) -> float:
+    low, high = bounds
+    if low == high:
+        return low
+    if value <= 0 or low <= 0:
+        span = high - low
+        return clamp_float(value + rng.gauss(0, span * scale * 0.25), bounds)
+    changed = value * math.exp(rng.gauss(0, scale))
+    return clamp_float(changed, bounds)
+
+
 def load_phrase_reading_overrides(paths: list[Path]) -> dict[str, dict[str, str]]:
     overrides: dict[str, dict[str, str]] = {}
     for path in paths:
@@ -161,6 +204,85 @@ def random_params(
         hand_load_weight=auxgen.AUX_HAND_LOAD_WEIGHT
         * sample_log_float(rng, hand_load_multiplier_range),
     )
+
+
+def anneal_neighbor(
+    rng: random.Random,
+    current: AuxParams,
+    slot_weight_range: tuple[int, int],
+    overflow_weight_range: tuple[int, int],
+    phrase_weight_range: tuple[int, int],
+    key_load_range: tuple[float, float],
+    finger_load_range: tuple[float, float],
+    hand_load_range: tuple[float, float],
+    step_scale: float,
+) -> AuxParams:
+    return AuxParams(
+        quick_select_candidates=current.quick_select_candidates,
+        same_code_slot_weight=perturb_log_int(
+            rng,
+            current.same_code_slot_weight,
+            slot_weight_range,
+            step_scale,
+        ),
+        same_code_overflow_weight=perturb_log_int(
+            rng,
+            current.same_code_overflow_weight,
+            overflow_weight_range,
+            step_scale,
+        ),
+        phrase_code_collision_weight=perturb_log_int(
+            rng,
+            current.phrase_code_collision_weight,
+            phrase_weight_range,
+            step_scale,
+        ),
+        key_load_weight=perturb_log_float(
+            rng,
+            current.key_load_weight,
+            key_load_range,
+            step_scale,
+        ),
+        finger_load_weight=perturb_log_float(
+            rng,
+            current.finger_load_weight,
+            finger_load_range,
+            step_scale,
+        ),
+        hand_load_weight=perturb_log_float(
+            rng,
+            current.hand_load_weight,
+            hand_load_range,
+            step_scale,
+        ),
+    )
+
+
+def anneal_temperature(
+    round_number: int,
+    rounds: int,
+    start_temp: float,
+    end_temp: float,
+) -> float:
+    if rounds <= 1:
+        return end_temp
+    progress = (round_number - 1) / (rounds - 1)
+    if start_temp > 0 and end_temp > 0:
+        return start_temp * ((end_temp / start_temp) ** progress)
+    return start_temp + (end_temp - start_temp) * progress
+
+
+def accepts_anneal(
+    rng: random.Random,
+    current_score: float,
+    candidate_score: float,
+    temperature: float,
+) -> bool:
+    if candidate_score <= current_score:
+        return True
+    if temperature <= 0:
+        return False
+    return rng.random() < math.exp(-(candidate_score - current_score) / temperature)
 
 
 def seed_params(quick_select_candidates: int) -> list[AuxParams]:
@@ -648,6 +770,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", help="Write the best auxiliary table.")
     parser.add_argument("--report", help="Write a Markdown optimization report.")
     parser.add_argument("--quiet", action="store_true")
+    parser.add_argument(
+        "--method",
+        choices=("random", "anneal"),
+        default="random",
+        help="Search strategy. random samples independent parameters; anneal "
+        "walks from the current generator parameters.",
+    )
 
     parser.add_argument("--slot-weight-range", type=parse_int_range, default=(250, 5_000))
     parser.add_argument(
@@ -670,6 +799,30 @@ def build_parser() -> argparse.ArgumentParser:
         "--hand-load-multiplier-range",
         type=parse_float_range,
         default=(0.25, 2.0),
+    )
+    parser.add_argument(
+        "--anneal-start-temp",
+        type=float,
+        default=250.0,
+        help="Initial simulated-annealing temperature in score points.",
+    )
+    parser.add_argument(
+        "--anneal-end-temp",
+        type=float,
+        default=2.0,
+        help="Final simulated-annealing temperature in score points.",
+    )
+    parser.add_argument(
+        "--anneal-start-step",
+        type=float,
+        default=0.35,
+        help="Initial log-space neighbor perturbation scale.",
+    )
+    parser.add_argument(
+        "--anneal-end-step",
+        type=float,
+        default=0.04,
+        help="Final log-space neighbor perturbation scale.",
     )
 
     parser.add_argument("--score-big-same-finger", type=float, default=100_000)
@@ -698,6 +851,10 @@ def main() -> int:
         parser.error("--quick-select-candidates must be at least 1")
     if args.char_limit is not None and args.char_limit < 1:
         parser.error("--char-limit must be at least 1")
+    if args.anneal_start_temp < 0 or args.anneal_end_temp < 0:
+        parser.error("anneal temperatures cannot be negative")
+    if args.anneal_start_step < 0 or args.anneal_end_step < 0:
+        parser.error("anneal steps cannot be negative")
 
     root: Path = args.root
     char_frequency = CharFrequency.load(resolve_path(root, args.char_frequency))
@@ -740,7 +897,7 @@ def main() -> int:
     if not args.quiet:
         print(
             f"optimize_thmy_aux: chars={len(chars)} rounds={args.rounds} "
-            f"candidate_limit={args.candidate_limit}",
+            f"candidate_limit={args.candidate_limit} method={args.method}",
             file=sys.stderr,
         )
 
@@ -765,13 +922,59 @@ def main() -> int:
         same_finger_stretch=args.score_same_finger_stretch,
     )
     rng = random.Random(args.seed)
-    queued_params = seed_params(args.quick_select_candidates)
+    queued_params = (
+        seed_params(args.quick_select_candidates) if args.method == "random" else []
+    )
     results: list[TrialResult] = []
     best_result: TrialResult | None = None
     best_assignments: list[auxgen.AuxAssignment] | None = None
+    current_result: TrialResult | None = None
+    current_search_params = current_params(args.quick_select_candidates)
 
     for round_number in range(1, args.rounds + 1):
-        if queued_params:
+        temperature = anneal_temperature(
+            round_number=round_number,
+            rounds=args.rounds,
+            start_temp=args.anneal_start_temp,
+            end_temp=args.anneal_end_temp,
+        )
+        step_scale = anneal_temperature(
+            round_number=round_number,
+            rounds=args.rounds,
+            start_temp=args.anneal_start_step,
+            end_temp=args.anneal_end_step,
+        )
+
+        if args.method == "anneal" and round_number == 1:
+            params = current_search_params
+        elif args.method == "anneal":
+            params = anneal_neighbor(
+                rng=rng,
+                current=current_search_params,
+                slot_weight_range=args.slot_weight_range,
+                overflow_weight_range=args.overflow_weight_range,
+                phrase_weight_range=args.phrase_weight_range,
+                key_load_range=(
+                    auxgen.AUX_KEY_LOAD_WEIGHT
+                    * args.key_load_multiplier_range[0],
+                    auxgen.AUX_KEY_LOAD_WEIGHT
+                    * args.key_load_multiplier_range[1],
+                ),
+                finger_load_range=(
+                    auxgen.AUX_FINGER_LOAD_WEIGHT
+                    * args.finger_load_multiplier_range[0],
+                    auxgen.AUX_FINGER_LOAD_WEIGHT
+                    * args.finger_load_multiplier_range[1],
+                ),
+                hand_load_range=(
+                    auxgen.AUX_HAND_LOAD_WEIGHT
+                    * args.hand_load_multiplier_range[0],
+                    auxgen.AUX_HAND_LOAD_WEIGHT
+                    * args.hand_load_multiplier_range[1],
+                ),
+                step_scale=step_scale,
+            )
+        elif queued_params:
             params = queued_params.pop(0)
         else:
             params = random_params(
@@ -805,12 +1008,32 @@ def main() -> int:
         if best_result is None or result.score < best_result.score:
             best_result = result
             best_assignments = assignments
+        accepted = False
+        if args.method == "anneal":
+            if current_result is None or accepts_anneal(
+                rng=rng,
+                current_score=current_result.score,
+                candidate_score=result.score,
+                temperature=temperature,
+            ):
+                current_result = result
+                current_search_params = params
+                accepted = True
 
         if not args.quiet:
             best_score = best_result.score if best_result else result.score
+            status = ""
+            if args.method == "anneal":
+                current_score = current_result.score if current_result else result.score
+                status = (
+                    f" current={current_score:.3f} "
+                    f"temp={temperature:.3f} step={step_scale:.3f} "
+                    f"{'accepted' if accepted else 'rejected'} "
+                )
             print(
                 f"round {round_number}/{args.rounds}: "
                 f"score={result.score:.3f} best={best_score:.3f} "
+                f"{status}"
                 f"one={result.length_counts[1]} two={result.length_counts[2]} "
                 f"max={result.max_candidates} "
                 f"over={result.groups_over_quick} "

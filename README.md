@@ -164,6 +164,17 @@ python3 scripts/optimize_thmy_aux.py \
   --output /tmp/thmy_aux_best.tsv
 ```
 
+围绕当前方案精修可使用模拟退火：
+
+```bash
+python3 scripts/optimize_thmy_aux.py \
+  --method anneal \
+  --rounds 500 \
+  --candidate-limit 96 \
+  --seed 20260625 \
+  --report data/thmy_aux_optimize_report_anneal500_seed20260625.md
+```
+
 报告会列出最佳 `same_code_slot_weight`、`same_code_overflow_weight`、
 `phrase_code_collision_weight` 和负载权重。评分中也包含靠后的同指长跨键惩罚：
 同键重复、临近和斜向邻键不算，只有同指跨两行的不同键才计入，例如 `yx`、
