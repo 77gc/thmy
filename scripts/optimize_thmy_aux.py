@@ -68,6 +68,19 @@ class TrialResult:
     same_finger_stretch_pairs: list[tuple[str, int, float, str]]
 
 
+PARETO_OBJECTIVE_KEYS = (
+    "groups_over_quick",
+    "overflow_candidates",
+    "max_candidate_overflow",
+    "two_letter",
+    "collisions",
+    "phrase_collisions",
+    "weighted_same_finger_stretches",
+    "added_same_hand",
+    "added_distance",
+)
+
+
 def resolve_path(root: Path, value: str | Path) -> Path:
     path = Path(value)
     if path.is_absolute():
@@ -627,10 +640,189 @@ def metric_line(metrics: dict[str, float]) -> str:
     return " ".join(f"{key}={value:.3f}" for key, value in sorted(metrics.items()))
 
 
+def pareto_objectives(result: TrialResult) -> dict[str, float]:
+    return {
+        "groups_over_quick": float(result.groups_over_quick),
+        "overflow_candidates": float(result.overflow_candidates),
+        "max_candidate_overflow": float(
+            max(0, result.max_candidates - result.params.quick_select_candidates)
+        ),
+        "two_letter": float(result.length_counts[2]),
+        "collisions": float(result.collisions),
+        "phrase_collisions": float(result.phrase_collisions),
+        "weighted_same_finger_stretches": result.weighted_same_finger_stretches,
+        "added_same_hand": result.weighted_aux_added["same_hand"],
+        "added_distance": result.weighted_aux_added["distance"],
+    }
+
+
+def dominates(left: TrialResult, right: TrialResult, epsilon: float = 1e-12) -> bool:
+    left_objectives = pareto_objectives(left)
+    right_objectives = pareto_objectives(right)
+    no_worse = all(
+        left_objectives[key] <= right_objectives[key] + epsilon
+        for key in PARETO_OBJECTIVE_KEYS
+    )
+    strictly_better = any(
+        left_objectives[key] < right_objectives[key] - epsilon
+        for key in PARETO_OBJECTIVE_KEYS
+    )
+    return no_worse and strictly_better
+
+
+def pareto_sort_key(result: TrialResult) -> tuple[object, ...]:
+    objectives = pareto_objectives(result)
+    return (
+        objectives["groups_over_quick"],
+        objectives["overflow_candidates"],
+        objectives["max_candidate_overflow"],
+        result.score,
+        objectives["weighted_same_finger_stretches"],
+        objectives["added_same_hand"],
+        objectives["added_distance"],
+        objectives["two_letter"],
+        objectives["collisions"],
+        objectives["phrase_collisions"],
+        result.round_number,
+        format_params(result.params),
+    )
+
+
+def trim_pareto_archive(
+    archive: list[TrialResult],
+    limit: int,
+) -> list[TrialResult]:
+    if limit <= 0 or len(archive) <= limit:
+        return sorted(archive, key=pareto_sort_key)
+
+    selected: list[TrialResult] = []
+    selected_params: set[AuxParams] = set()
+
+    for key in PARETO_OBJECTIVE_KEYS:
+        best_for_key = min(
+            archive,
+            key=lambda result: (pareto_objectives(result)[key], result.score),
+        )
+        if best_for_key.params not in selected_params:
+            selected.append(best_for_key)
+            selected_params.add(best_for_key.params)
+        if len(selected) >= limit:
+            return sorted(selected, key=pareto_sort_key)
+
+    for result in sorted(archive, key=pareto_sort_key):
+        if result.params in selected_params:
+            continue
+        selected.append(result)
+        selected_params.add(result.params)
+        if len(selected) >= limit:
+            break
+
+    return sorted(selected, key=pareto_sort_key)
+
+
+def update_pareto_archive(
+    archive: list[TrialResult],
+    result: TrialResult,
+    limit: int,
+) -> list[TrialResult]:
+    if limit <= 0:
+        return archive
+
+    for index, existing in enumerate(archive):
+        if existing.params == result.params:
+            if result.score < existing.score:
+                archive[index] = result
+            return trim_pareto_archive(archive, limit)
+
+    if any(dominates(existing, result) for existing in archive):
+        return trim_pareto_archive(archive, limit)
+
+    archive = [existing for existing in archive if not dominates(result, existing)]
+    archive.append(result)
+    return trim_pareto_archive(archive, limit)
+
+
+def pareto_table_rows(results: list[TrialResult]) -> list[str]:
+    rows: list[str] = []
+    for rank, result in enumerate(sorted(results, key=pareto_sort_key), 1):
+        rows.append(
+            f"| {rank} | {result.round_number} | {result.score:.3f} | "
+            f"{result.length_counts[1]} | {result.length_counts[2]} | "
+            f"{result.collisions} | {result.phrase_collisions} | "
+            f"{result.same_finger_stretches} | "
+            f"{result.weighted_same_finger_stretches:.6f} | "
+            f"{result.max_candidates} | {result.groups_over_quick} | "
+            f"{result.overflow_candidates} | "
+            f"{result.weighted_aux_added['same_hand']:.3f} | "
+            f"{result.weighted_aux_added['distance']:.3f} | "
+            f"`{format_params(result.params)}` |"
+        )
+    return rows
+
+
+def write_pareto_output(output: Path, results: list[TrialResult]) -> None:
+    lines = [
+        "\t".join(
+            [
+                "rank",
+                "round",
+                "score",
+                "one_letter",
+                "two_letter",
+                "collisions",
+                "phrase_collisions",
+                "same_finger_stretches",
+                "weighted_same_finger_stretches",
+                "max_candidates",
+                "groups_over_quick",
+                "overflow_candidates",
+                "added_same_hand",
+                "added_distance",
+                "same_code_slot_weight",
+                "same_code_overflow_weight",
+                "phrase_code_collision_weight",
+                "key_load_weight",
+                "finger_load_weight",
+                "hand_load_weight",
+            ]
+        )
+    ]
+    for rank, result in enumerate(sorted(results, key=pareto_sort_key), 1):
+        lines.append(
+            "\t".join(
+                [
+                    str(rank),
+                    str(result.round_number),
+                    f"{result.score:.6f}",
+                    str(result.length_counts[1]),
+                    str(result.length_counts[2]),
+                    str(result.collisions),
+                    str(result.phrase_collisions),
+                    str(result.same_finger_stretches),
+                    f"{result.weighted_same_finger_stretches:.9f}",
+                    str(result.max_candidates),
+                    str(result.groups_over_quick),
+                    str(result.overflow_candidates),
+                    f"{result.weighted_aux_added['same_hand']:.9f}",
+                    f"{result.weighted_aux_added['distance']:.9f}",
+                    str(result.params.same_code_slot_weight),
+                    str(result.params.same_code_overflow_weight),
+                    str(result.params.phrase_code_collision_weight),
+                    f"{result.params.key_load_weight:.12g}",
+                    f"{result.params.finger_load_weight:.12g}",
+                    f"{result.params.hand_load_weight:.12g}",
+                ]
+            )
+        )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def write_report(
     output: Path,
     results: list[TrialResult],
     best: TrialResult,
+    pareto_results: list[TrialResult],
     rounds: int,
     candidate_limit: int,
     seed: int,
@@ -703,6 +895,29 @@ def write_report(
     lines.extend(
         [
             "",
+            "## Pareto Candidates",
+            "",
+            "A candidate is kept when no archived candidate is no worse across "
+            "quick-select overflow, two-letter count, collisions, phrase "
+            "collisions, same-finger stretches, added same-hand rate, and added "
+            "travel distance. Score is used only for ordering and tie-breaking.",
+            "",
+            "| Rank | Round | Score | One-letter | Two-letter | Collisions | "
+            "Phrase collisions | Stretches | Weighted stretches | Max candidates | "
+            "Groups > quick | Overflow | Added same-hand | Added distance | "
+            "Parameters |",
+            "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | "
+            "---: | ---: | ---: | ---: | ---: | --- |",
+        ]
+    )
+    if pareto_results:
+        lines.extend(pareto_table_rows(pareto_results))
+    else:
+        lines.append("| - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |")
+
+    lines.extend(
+        [
+            "",
             "## Largest candidate groups",
             "",
             "| Code | Chars | Weights |",
@@ -769,6 +984,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--phrase-reading-overrides", action="append")
     parser.add_argument("--output", help="Write the best auxiliary table.")
     parser.add_argument("--report", help="Write a Markdown optimization report.")
+    parser.add_argument("--pareto-output", help="Write Pareto archive as TSV.")
+    parser.add_argument(
+        "--pareto-limit",
+        type=int,
+        default=40,
+        help="Maximum Pareto candidates to keep. Set to 0 to disable.",
+    )
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument(
         "--method",
@@ -855,6 +1077,8 @@ def main() -> int:
         parser.error("anneal temperatures cannot be negative")
     if args.anneal_start_step < 0 or args.anneal_end_step < 0:
         parser.error("anneal steps cannot be negative")
+    if args.pareto_limit < 0:
+        parser.error("--pareto-limit cannot be negative")
 
     root: Path = args.root
     char_frequency = CharFrequency.load(resolve_path(root, args.char_frequency))
@@ -928,6 +1152,7 @@ def main() -> int:
     results: list[TrialResult] = []
     best_result: TrialResult | None = None
     best_assignments: list[auxgen.AuxAssignment] | None = None
+    pareto_results: list[TrialResult] = []
     current_result: TrialResult | None = None
     current_search_params = current_params(args.quick_select_candidates)
 
@@ -1004,6 +1229,11 @@ def main() -> int:
             score_weights=score_weights,
         )
         results.append(result)
+        pareto_results = update_pareto_archive(
+            archive=pareto_results,
+            result=result,
+            limit=args.pareto_limit,
+        )
 
         if best_result is None or result.score < best_result.score:
             best_result = result
@@ -1060,14 +1290,22 @@ def main() -> int:
             output=resolve_path(root, args.report),
             results=results,
             best=best_result,
+            pareto_results=pareto_results,
             rounds=args.rounds,
             candidate_limit=args.candidate_limit,
             seed=args.seed,
             char_limit=args.char_limit,
         )
 
+    if args.pareto_output:
+        write_pareto_output(
+            output=resolve_path(root, args.pareto_output),
+            results=pareto_results,
+        )
+
     print("best_score", f"{best_result.score:.3f}")
     print("best_params", format_params(best_result.params))
+    print("pareto_candidates", len(pareto_results))
     print(
         "best_metrics",
         f"one_letter={best_result.length_counts[1]}",
