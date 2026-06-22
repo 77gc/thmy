@@ -32808,6 +32808,7 @@ kfgs	智勇双全
 kfgc	准时
 kfgd	睁眼说瞎话
 kfgf	专业术语
+ujyj	术语
 kfgi	准绳
 kfgj	仗义疏财
 kfgk	只缘身在此山中

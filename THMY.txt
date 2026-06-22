@@ -54596,6 +54596,7 @@ ujyeytihgq	术业有专攻
 ujyf	数月
 ujyh	疏远
 ujyj	属于
+ujyj	术语
 ujyjjlahfibjin	树欲静而风不止
 ujyk	手疾眼快
 ujyl	输赢
@@ -59460,6 +59461,7 @@ vqig	重装
 vqigxntq	重装系统
 vqii	重整
 vqiiqngj	重整旗鼓
+vqin	重置
 vqin	充值
 vqir	长驱直入
 vqiu	出奇制胜
