@@ -6,6 +6,13 @@ from typing import Optional, Union
 
 
 MIN_SUBSTANTIAL_READING_WEIGHT = 1000
+PHRASE_LENGTH_BASE_WEIGHTS = {
+    2: 700_000,
+    3: 520_000,
+    4: 300_000,
+    5: 220_000,
+}
+MAX_FALLBACK_PHRASE_WEIGHT = 999_999
 
 PINYIN_INITIAL_TO_THMY = {
     "b": "b",
@@ -134,9 +141,32 @@ class CharFrequency:
                 return 20_000_000 + self.max_rank + 1 - rank
             return 10_000_000 - min(index, 9_000_000)
 
-        # Fallback phrase weights preserve source order and stay below single
-        # characters. PhraseFrequency can override this for known common words.
-        return 1_000_000 + total_entries - index
+        # Fallback phrase weights stay below explicit PhraseFrequency weights
+        # while avoiding raw source order for same-code phrase collisions.
+        return 1_000_000 + self.phrase_fallback_weight(text, index)
+
+    def phrase_fallback_weight(self, text: str, index: int) -> int:
+        if len(text) <= 1:
+            return 0
+
+        length_base = PHRASE_LENGTH_BASE_WEIGHTS.get(
+            len(text),
+            max(80_000, PHRASE_LENGTH_BASE_WEIGHTS[5] - (len(text) - 5) * 25_000),
+        )
+        unknown_rank = self.max_rank + 1
+        ranks = [self.ranks.get(char, unknown_rank) for char in text]
+        rank_ceiling = max(self.max_rank, 1)
+        average_rank = sum(ranks) / len(ranks)
+        best_rank = min(ranks)
+        average_score = int(
+            max(0.0, 1.0 - (average_rank - 1) / rank_ceiling) * 200_000
+        )
+        best_score = int(max(0.0, 1.0 - (best_rank - 1) / rank_ceiling) * 70_000)
+        source_score = max(0, 20_000 - min(index, 20_000))
+        return min(
+            MAX_FALLBACK_PHRASE_WEIGHT,
+            length_base + average_score + best_score + source_score,
+        )
 
 
 @dataclass(frozen=True)
@@ -284,12 +314,18 @@ def table_sort_key(
         phrase_weight = (
             phrase_frequency.weight(text) if phrase_frequency is not None else None
         )
+        fallback_weight = (
+            char_frequency.phrase_fallback_weight(text, index)
+            if char_frequency is not None
+            else 0
+        )
         return (
             normalized_code,
             text_kind,
             custom_rank is None,
             custom_rank if custom_rank is not None else 0,
-            -(phrase_weight or 0),
+            phrase_weight is None,
+            -(phrase_weight if phrase_weight is not None else fallback_weight),
             index,
         )
     if char_frequency is None:

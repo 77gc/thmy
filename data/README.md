@@ -58,6 +58,13 @@ Use this file for broadly common words that should sort well everywhere. Use
 `thmy_custom.tsv` for personal hard overrides, newly added words, or cases where
 your own preference should beat general frequency.
 
+Phrases not listed here still get a conservative fallback score during rebuild:
+shorter phrases generally rank before longer phrases, phrases made from more
+common characters rank earlier, and original source order is only the final
+tiebreaker. This prevents low-frequency four-character phrases from outranking
+common two-character words solely because they appeared earlier in the source
+table.
+
 ## Shape Codes
 
 No shape-code source is bundled in the current rebuild. Shape codes should be
