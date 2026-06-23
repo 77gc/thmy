@@ -49883,6 +49883,7 @@ ughc	伏击
 ughf	夫君
 ughg	俯拾皆是
 ughm	福建
+fjrk	福瑞
 ughn	丰神俊朗
 ugho	愤世嫉俗
 ughq	附加

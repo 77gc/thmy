@@ -7,6 +7,7 @@ ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 FREQ_FILE="$ROOT_DIR/data/hanzi_frequency_junda.tsv"
 READING_FREQ_FILE="$ROOT_DIR/data/hanzi_reading_frequency_baishuang_8105.tsv"
 CUSTOM_FILE="$ROOT_DIR/data/thmy_custom.tsv"
+PHRASE_FREQ_FILE="$ROOT_DIR/data/phrase_frequency.tsv"
 AUX_FILE="$ROOT_DIR/data/thmy_aux.tsv"
 AUX_REFERENCE_FILE="$ROOT_DIR/data/thmy_aux_reference.md"
 AUX_REFERENCE_TSV_FILE="$ROOT_DIR/data/thmy_aux_reference.tsv"
@@ -47,6 +48,8 @@ python3 "$ROOT_DIR/scripts/build_thmy.py" \
 python3 "$ROOT_DIR/scripts/sort_table_source.py" \
   --char-frequency "$FREQ_FILE" \
   --reading-frequency "$READING_FREQ_FILE" \
+  --phrase-frequency "$PHRASE_FREQ_FILE" \
+  --custom-entries "$CUSTOM_FILE" \
   --dedupe \
   "$TMP_SOURCE" \
   "$ROOT_DIR/THMY.txt"
@@ -56,6 +59,8 @@ python3 "$ROOT_DIR/scripts/fcitx_table_to_weighted_rime.py" \
   --version "2026-05-18" \
   --char-frequency "$FREQ_FILE" \
   --reading-frequency "$READING_FREQ_FILE" \
+  --phrase-frequency "$PHRASE_FREQ_FILE" \
+  --custom-entries "$CUSTOM_FILE" \
   "$ROOT_DIR/THMY.txt" \
   "$ROOT_DIR/rime/thmy.dict.yaml"
 
@@ -65,6 +70,7 @@ python3 "$ROOT_DIR/scripts/build_thmy_jj.py" \
   --custom-entries "$CUSTOM_FILE" \
   --aux-codes "$AUX_FILE" \
   --phrase-reading-overrides "$PHRASE_READING_OVERRIDES_FILE" \
+  --phrase-frequency "$PHRASE_FREQ_FILE" \
   "$PHRASE_SOURCE_FILE" \
   "$ROOT_DIR/rime/thmy_jj.dict.yaml"
 

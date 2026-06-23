@@ -296,7 +296,7 @@ preset_keyboards:
       - {click: BackSpace2, key_back_color: bbs, key_text_color: tbs, label: "⌫", width: 10}
       - {click: "'", key_back_color: bdark, key_text_color: th1, long_click: '"'}
       - {click: ",", key_back_color: bgray, key_text_color: th1, long_click: "<"}
-      - {click: ".", key_back_color: bdark, key_text_color: th1, long_click: ">"}
+      - {click: a, hint: "ao", key_back_color: bdark, key_text_color: th1, long_click: select_all, swipe_up: A}
       - {click: p, hint: "ei", key_back_color: bgray, key_text_color: th1, long_click: "~", swipe_up: P}
       - {click: y, hint: "a", key_back_color: bdark, key_text_color: th1, long_click: "`", swipe_up: Y}
       - {click: f, hint: "ue", key_back_color: bgray, key_text_color: th1, swipe_up: F}
@@ -304,16 +304,15 @@ preset_keyboards:
       - {click: c, hint: "ian", key_back_color: bgray, key_text_color: th1, long_click: copy, swipe_up: C}
       - {click: r, hint: "N/iao", key_back_color: bdark, key_text_color: th1, long_click: "\\", swipe_up: R}
       - {click: l, hint: "ing/uai", key_back_color: bgray, key_text_color: th1, long_click: "|", swipe_up: L}
-      - {click: a, hint: "ao", key_back_color: bdark, key_text_color: th2, long_click: select_all, swipe_up: A}
-      - {click: o, hint: "an", key_back_color: bgray, key_text_color: th2, long_click: copy, swipe_up: O}
-      - {click: e, hint: "e", key_back_color: bdark, key_text_color: th2, long_click: cut, swipe_up: E}
-      - {click: u, hint: "O/uo", key_back_color: bgn, key_text_color: tgn, long_click: paste, swipe_up: U}
-      - {click: i, hint: "eng", key_back_color: bdark, key_text_color: th2, long_click: undo, swipe_down: date_time, swipe_up: I}
-      - {click: d, hint: "un", key_back_color: bgray, key_text_color: th2, long_click: Tab1, swipe_up: D}
-      - {click: h, hint: "R/uan", key_back_color: bgn, key_text_color: tgn, swipe_up: H}
-      - {click: t, hint: "ou", key_back_color: bgray, key_text_color: th2, swipe_up: T}
-      - {click: n, hint: "i", key_back_color: bdark, key_text_color: th2, long_click: Keyboard_number, swipe_up: N}
-      - {click: s, hint: "ang", key_back_color: bgray, key_text_color: th2, swipe_up: S}
+      - {click: o, hint: "an", key_back_color: bgray, key_text_color: th2, long_click: copy, swipe_up: O, width: 11.111}
+      - {click: e, hint: "e", key_back_color: bdark, key_text_color: th2, long_click: cut, swipe_up: E, width: 11.111}
+      - {click: u, hint: "O/uo", key_back_color: bgn, key_text_color: tgn, long_click: paste, swipe_up: U, width: 11.111}
+      - {click: i, hint: "eng", key_back_color: bdark, key_text_color: th2, long_click: undo, swipe_down: date_time, swipe_up: I, width: 11.111}
+      - {click: d, hint: "un", key_back_color: bgray, key_text_color: th2, long_click: Tab1, swipe_up: D, width: 11.111}
+      - {click: h, hint: "R/uan", key_back_color: bgn, key_text_color: tgn, swipe_up: H, width: 11.111}
+      - {click: t, hint: "ou", key_back_color: bgray, key_text_color: th2, swipe_up: T, width: 11.111}
+      - {click: n, hint: "i", key_back_color: bdark, key_text_color: th2, long_click: Keyboard_number, swipe_up: N, width: 11.111}
+      - {click: s, hint: "ang", key_back_color: bgray, key_text_color: th2, swipe_up: S, width: 11.112}
       - {click: Shift_L, composing: delimiter, double_click: Shift_L3, hilited_key_back_color: benter, key_back_color: bbs, key_text_color: tbs, label: "⇧", label_symbol: "⇧",long_click: "?", width: 15}
       - {click: q, hint: "i/ong", key_back_color: bgray, key_text_color: th3, long_click: cut, swipe_up: Q, width: 9}
       - {click: j, hint: "u", key_back_color: bdark, key_text_color: th3, swipe_up: J, width: 9}
@@ -434,7 +433,8 @@ preset_keyboards:
       - {click: Keyboard_number, key_back_color: bgn, key_text_color: tgn, long_click: Menu, width: 12.5}
       - {click: Keyboard_bqrw, key_back_color: bgn, key_text_color: tgn, key_text_size: 18, long_click: Theme_settings, width: 12.5}
       - {click: space, hint: "", key_back_color: bkg, key_text_color: tkg, label: ______, long_click: space_R2, swipe_left: Left, swipe_right: Right, swipe_up: Keyboard_default, width: 50}
-      - {click: Return, composing: Return1, key_back_color: benter, key_text_color: tenter, swipe_up: Escape, width: 25}
+      - {click: BackSpace, key_back_color: bbs, key_text_color: tbs, width: 12.5}
+      - {click: Return, composing: Return1, key_back_color: benter, key_text_color: tenter, swipe_up: Escape, width: 12.5}
     name: "thmy dvorak en"
     width: 10
   letter_legacy:

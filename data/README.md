@@ -45,6 +45,19 @@ Columns are `character<TAB>sit_initial_key<TAB>source_weight<TAB>pinyin`.
 - `shui` 权重刻意较低，所以 `uk` 仍以 `水` 为首候选，不会再浪费一个
   首候选位置给 `谁`。
 
+## `phrase_frequency.tsv`
+
+Manual conservative phrase-frequency layer for same-code phrase ordering.
+
+Columns are `phrase<TAB>weight`. Higher weights rank earlier among
+multi-character candidates with the same code. Entries from
+`thmy_custom.tsv` still outrank this file, and single-character candidates stay
+ahead of phrases for the same code.
+
+Use this file for broadly common words that should sort well everywhere. Use
+`thmy_custom.tsv` for personal hard overrides, newly added words, or cases where
+your own preference should beat general frequency.
+
 ## Shape Codes
 
 No shape-code source is bundled in the current rebuild. Shape codes should be

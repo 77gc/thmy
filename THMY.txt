@@ -12354,6 +12354,7 @@ fjrj	妇孺
 fjrjdqhx	福如东海
 fjrjjvin	妇孺皆知
 fjrjnlin	肤如凝脂
+fjrk	福瑞
 fjro	怫然
 fjrobjyf	怫然不悦
 fjrozuse	怫然作色
@@ -23535,8 +23536,8 @@ incubngx	知错必改
 incujbgx	知错就改
 incunigx	知错能改
 incx	制裁
-inda	指导
 inda	知道
+inda	指导
 indahglq	直捣黄龙
 indale	知道了
 indamy	知道吗
@@ -37877,8 +37878,8 @@ mnmo	弥漫
 mnmr	某年某月某日
 mnms	迷茫
 mnmt	密谋
-mnmy	某年某月
 mnmy	密码
+mnmy	某年某月
 mnnn	迷你
 mnnr	泌尿
 mno	觅
@@ -38928,8 +38929,8 @@ murohkut	蓦然回首
 muroinin	漠然置之
 muru	莫若
 murx	妙手仁心
-murz	陌生人
 murz	默认
+murz	陌生人
 mus	摩
 mus	嬷
 musd	磨损
@@ -41065,8 +41066,8 @@ nyf	娜
 nyfsmc	哪方面
 nyfz	那份
 nyg	那
-nyge	哪个
 nyge	那个
+nyge	哪个
 nyge	哪一个
 nygedqxn	那个东西
 nygerz	那个人
@@ -41191,9 +41192,9 @@ nyxg	哪像
 nyxl	那行
 nyxnzj	纳西族
 nyxrzn	那小子
+nyxv	那些
 nyxv	哪些
 nyxv	脑溢血
-nyxv	那些
 nyxvdqxn	那些东西
 nyxvge	那些个
 nyxvnc	那些年
@@ -41216,8 +41217,8 @@ nyyntc	哪一天
 nyyntc	那一天
 nyynuyny	那一刹那
 nyynwp	哪一位
-nyys	哪样
 nyys	那样
+nyys	哪样
 nyys	暖洋洋
 nyysdehw	那样的话
 nyyt	哪有
@@ -45057,8 +45058,8 @@ qlxm	清新
 qlxm	轻信
 qlxmgwyj	清心寡欲
 qlxmtusj	清新脱俗
-qlxn	娶了媳妇忘了娘
 qlxn	清晰
+qlxn	娶了媳妇忘了娘
 qlxr	倾销
 qlxv	倾斜
 qly	清
@@ -54595,8 +54596,8 @@ ujye	树叶
 ujyeytihgq	术业有专攻
 ujyf	数月
 ujyh	疏远
-ujyj	属于
 ujyj	术语
+ujyj	属于
 ujyjjlahfibjin	树欲静而风不止
 ujyk	手疾眼快
 ujyl	输赢
@@ -63492,8 +63493,8 @@ xbxg	休想
 xbxg	习不习惯
 xbxh	喜不喜欢
 xbxj	虾兵蟹将
-xbxl	修行
 xbxl	行不行
+xbxl	修行
 xbxlkagerz	修行靠个人
 xbxmysxl	修心养性
 xbxn	休息
@@ -63591,8 +63592,8 @@ xcbv	先别
 xcbx	显摆
 xcby	下次吧
 xcca	仙草
-xccd	现存
 xccd	冼村
+xccd	现存
 xcce	献策
 xccx	咸菜
 xcde	显得
@@ -70276,8 +70277,9 @@ ymj	氤
 ymj	慭
 ymjb	饮酒
 ymjbcnin	引咎辞职
-ymjc	也没见
+ymjc	阴间
 ymjc	引荐
+ymjc	也没见
 ymjj	隐居
 ymjl	夜幕降临
 ymjl	阴茎
@@ -71608,8 +71610,8 @@ ynxs	勚
 ynxv	一些
 ynxvhhxv	以血还血
 ynxvqcln	一泻千里
-ynxw	以下
 ynxw	一下
+ynxw	以下
 ynxwfous	以下犯上
 ynxwrjhe	意下如何
 ynxwsuuj	以下所述

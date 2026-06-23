@@ -134,10 +134,59 @@ class CharFrequency:
                 return 20_000_000 + self.max_rank + 1 - rank
             return 10_000_000 - min(index, 9_000_000)
 
-        # No word-frequency corpus is bundled. Keep phrase order stable and
-        # below single characters so a same-code high-frequency character is
-        # not displaced by an unrelated phrase.
+        # Fallback phrase weights preserve source order and stay below single
+        # characters. PhraseFrequency can override this for known common words.
         return 1_000_000 + total_entries - index
+
+
+@dataclass(frozen=True)
+class PhraseFrequency:
+    weights: dict[str, int]
+
+    @classmethod
+    def load(cls, path: Union[str, Path]) -> "PhraseFrequency":
+        weights: dict[str, int] = {}
+        for line_number, line in enumerate(
+            Path(path).read_text(encoding="utf-8").splitlines(),
+            1,
+        ):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "\t" not in line:
+                raise ValueError(f"missing tab in phrase frequency {path}:{line_number}")
+            text, weight_text = line.split("\t", 1)
+            text = text.strip()
+            weight = int(weight_text.strip())
+            if not text:
+                raise ValueError(f"empty phrase frequency text {path}:{line_number}")
+            if len(text) <= 1:
+                raise ValueError(
+                    f"single character in phrase frequency {path}:{line_number}"
+                )
+            if weight <= 0:
+                raise ValueError(f"non-positive phrase frequency {path}:{line_number}")
+            weights[text] = max(weight, weights.get(text, 0))
+        return cls(weights=weights)
+
+    def weight(self, text: str) -> Optional[int]:
+        return self.weights.get(text)
+
+    def rime_weight(
+        self,
+        text: str,
+        index: int,
+        total_entries: int,
+        custom_rank: Optional[int] = None,
+    ) -> Optional[int]:
+        if len(text) <= 1:
+            return None
+        if custom_rank is not None:
+            return 5_000_000 - custom_rank
+        weight = self.weight(text)
+        if weight is None:
+            return None
+        return 2_000_000 + weight
 
 
 @dataclass(frozen=True)
@@ -224,12 +273,26 @@ def table_sort_key(
     index: int,
     char_frequency: Optional[CharFrequency] = None,
     reading_frequency: Optional[ReadingFrequency] = None,
+    phrase_frequency: Optional[PhraseFrequency] = None,
+    custom_rank: Optional[int] = None,
     reading_key: Optional[str] = None,
     reading_sound_code: Optional[str] = None,
 ) -> tuple[object, ...]:
     normalized_code = code.replace(";", "-")
     text_kind = 0 if len(text) == 1 else 1
-    if char_frequency is None or len(text) != 1:
+    if len(text) != 1:
+        phrase_weight = (
+            phrase_frequency.weight(text) if phrase_frequency is not None else None
+        )
+        return (
+            normalized_code,
+            text_kind,
+            custom_rank is None,
+            custom_rank if custom_rank is not None else 0,
+            -(phrase_weight or 0),
+            index,
+        )
+    if char_frequency is None:
         return (normalized_code, text_kind, index)
     reading_priority: int | None = None
     reading_weight_sort = 0

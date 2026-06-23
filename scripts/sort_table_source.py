@@ -6,7 +6,31 @@ import argparse
 import sys
 from pathlib import Path
 
-from char_frequency import CharFrequency, ReadingFrequency, table_sort_key
+from char_frequency import (
+    CharFrequency,
+    PhraseFrequency,
+    ReadingFrequency,
+    table_sort_key,
+)
+
+
+def load_custom_ranks(paths: list[str]) -> dict[tuple[str, str], int]:
+    ranks: dict[tuple[str, str], int] = {}
+    rank = 0
+    for path_text in paths:
+        path = Path(path_text)
+        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "\t" not in line:
+                raise ValueError(f"missing tab in custom entry {path}:{line_number}")
+            code, text = line.split("\t", 1)
+            identity = (code.strip().lower(), text.strip())
+            if identity not in ranks:
+                ranks[identity] = rank
+                rank += 1
+    return ranks
 
 
 def main() -> int:
@@ -23,6 +47,16 @@ def main() -> int:
         help="drop exact duplicate code/text entries while keeping the first occurrence",
     )
     parser.add_argument(
+        "--custom-entries",
+        action="append",
+        default=[],
+        help="TSV file with code<TAB>text entries that should stay ahead of phrase frequency",
+    )
+    parser.add_argument(
+        "--phrase-frequency",
+        help="TSV file with phrase<TAB>weight for same-code phrase sorting",
+    )
+    parser.add_argument(
         "--reading-frequency",
         help="TSV file with character<TAB>key<TAB>weight for suppressing rare polyphonic readings",
     )
@@ -34,6 +68,10 @@ def main() -> int:
     reading_frequency = (
         ReadingFrequency.load(args.reading_frequency) if args.reading_frequency else None
     )
+    phrase_frequency = (
+        PhraseFrequency.load(args.phrase_frequency) if args.phrase_frequency else None
+    )
+    custom_ranks = load_custom_ranks(args.custom_entries)
 
     lines = input_path.read_text(encoding="utf-8").splitlines()
 
@@ -70,6 +108,8 @@ def main() -> int:
                     index=index,
                     char_frequency=char_frequency,
                     reading_frequency=reading_frequency,
+                    phrase_frequency=phrase_frequency,
+                    custom_rank=custom_ranks.get((code, text)),
                     reading_key=reading_key,
                     reading_sound_code=reading_sound_code,
                 ),
@@ -77,9 +117,8 @@ def main() -> int:
             )
         )
 
-    # Sort by code, but keep single-character entries ahead of multi-character
-    # entries for the same code. If a frequency table is supplied, same-code
-    # single-character candidates are ordered by rank; phrases remain stable.
+    # Sort by code, keep single-character entries ahead of multi-character
+    # entries for the same code, then order phrases by custom rank and frequency.
     entries.sort(key=lambda item: item[0])
     output_data = [line for _sort_key, line in entries]
 

@@ -5,7 +5,26 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from char_frequency import CharFrequency, ReadingFrequency
+from char_frequency import CharFrequency, PhraseFrequency, ReadingFrequency
+
+
+def load_custom_ranks(paths: list[str]) -> dict[tuple[str, str], int]:
+    ranks: dict[tuple[str, str], int] = {}
+    rank = 0
+    for path_text in paths:
+        path = Path(path_text)
+        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "\t" not in line:
+                raise ValueError(f"missing tab in custom entry {path}:{line_number}")
+            code, text = line.split("\t", 1)
+            identity = (text.strip(), code.strip().lower().replace(";", "-"))
+            if identity not in ranks:
+                ranks[identity] = rank
+                rank += 1
+    return ranks
 
 
 def read_entries(path: Path) -> list[tuple[str, str]]:
@@ -36,6 +55,8 @@ def write_rime_dict(
     version: str,
     char_frequency: CharFrequency,
     reading_frequency: ReadingFrequency | None,
+    phrase_frequency: PhraseFrequency | None,
+    custom_ranks: dict[tuple[str, str], int],
 ) -> None:
     total_entries = len(entries)
     output: list[str] = [
@@ -53,6 +74,18 @@ def write_rime_dict(
 
     for index, (text, code) in enumerate(entries):
         weight = char_frequency.rime_weight(text, index, total_entries)
+        phrase_weight = (
+            phrase_frequency.rime_weight(
+                text=text,
+                index=index,
+                total_entries=total_entries,
+                custom_rank=custom_ranks.get((text, code)),
+            )
+            if phrase_frequency is not None
+            else None
+        )
+        if phrase_weight is not None:
+            weight = phrase_weight
         if len(text) == 1 and code and reading_frequency is not None:
             reading_sound_code = code[:2] if len(code) >= 2 else None
             if reading_sound_code is not None:
@@ -84,12 +117,18 @@ def main() -> int:
     parser.add_argument("--version", required=True)
     parser.add_argument("--char-frequency", required=True)
     parser.add_argument("--reading-frequency")
+    parser.add_argument("--phrase-frequency")
+    parser.add_argument("--custom-entries", action="append", default=[])
     args = parser.parse_args()
 
     char_frequency = CharFrequency.load(args.char_frequency)
     reading_frequency = (
         ReadingFrequency.load(args.reading_frequency) if args.reading_frequency else None
     )
+    phrase_frequency = (
+        PhraseFrequency.load(args.phrase_frequency) if args.phrase_frequency else None
+    )
+    custom_ranks = load_custom_ranks(args.custom_entries)
     entries = read_entries(Path(args.input))
     write_rime_dict(
         entries=entries,
@@ -98,6 +137,8 @@ def main() -> int:
         version=args.version,
         char_frequency=char_frequency,
         reading_frequency=reading_frequency,
+        phrase_frequency=phrase_frequency,
+        custom_ranks=custom_ranks,
     )
     return 0
 
