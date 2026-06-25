@@ -48,6 +48,89 @@ def read_entries(path: Path) -> list[tuple[str, str]]:
     return entries
 
 
+def entry_weight(
+    text: str,
+    code: str,
+    index: int,
+    total_entries: int,
+    char_frequency: CharFrequency,
+    reading_frequency: ReadingFrequency | None,
+    phrase_frequency: PhraseFrequency | None,
+    custom_ranks: dict[tuple[str, str], int],
+) -> int:
+    weight = char_frequency.rime_weight(text, index, total_entries)
+    phrase_weight = (
+        phrase_frequency.rime_weight(
+            text=text,
+            index=index,
+            total_entries=total_entries,
+            custom_rank=custom_ranks.get((text, code)),
+        )
+        if phrase_frequency is not None
+        else None
+    )
+    if phrase_weight is not None:
+        return phrase_weight
+    if len(text) != 1 or not code or reading_frequency is None:
+        return weight
+
+    is_custom_entry = custom_ranks.get((text, code)) is not None
+
+    reading_sound_code = code[:2] if len(code) >= 2 else None
+    if reading_sound_code is not None:
+        reading_weight = reading_frequency.sound_weight(text, reading_sound_code)
+        is_substantial = reading_frequency.is_substantial_sound(text, reading_sound_code)
+    else:
+        reading_key = code[0]
+        reading_weight = reading_frequency.weight(text, reading_key)
+        is_substantial = reading_frequency.is_substantial(text, reading_key)
+
+    if is_custom_entry:
+        return weight
+    if reading_weight is None:
+        return 100
+    if not is_substantial:
+        return 100 + (reading_weight or 0)
+    return weight
+
+
+def apply_one_key_concessions(
+    weighted_entries: list[tuple[str, str, int]],
+    custom_ranks: dict[tuple[str, str], int],
+) -> list[tuple[str, str, int]]:
+    by_code: dict[str, list[tuple[int, int, str]]] = {}
+    for index, (text, code, weight) in enumerate(weighted_entries):
+        if len(text) == 1 and ";" not in code:
+            by_code.setdefault(code, []).append((weight, index, text))
+
+    one_key_top: dict[str, str] = {}
+    for code, candidates in by_code.items():
+        if len(code) != 1:
+            continue
+        weight, index, text = max(candidates, key=lambda item: (item[0], -item[1]))
+        one_key_top[code] = text
+
+    output = list(weighted_entries)
+    for code, candidates in by_code.items():
+        if len(code) != 2:
+            continue
+        text_to_concede = one_key_top.get(code[0])
+        if text_to_concede is None:
+            continue
+        other_weights = [
+            weight for weight, _index, text in candidates if text != text_to_concede
+        ]
+        if not other_weights:
+            continue
+        best_other_weight = max(other_weights)
+        for weight, index, text in candidates:
+            if text != text_to_concede or (text, code) in custom_ranks:
+                continue
+            if weight >= best_other_weight:
+                output[index] = (text, code, best_other_weight - 1)
+    return output
+
+
 def write_rime_dict(
     entries: list[tuple[str, str]],
     output_path: Path,
@@ -72,38 +155,25 @@ def write_rime_dict(
         "...",
     ]
 
-    for index, (text, code) in enumerate(entries):
-        weight = char_frequency.rime_weight(text, index, total_entries)
-        phrase_weight = (
-            phrase_frequency.rime_weight(
+    weighted_entries = [
+        (
+            text,
+            code,
+            entry_weight(
                 text=text,
+                code=code,
                 index=index,
                 total_entries=total_entries,
-                custom_rank=custom_ranks.get((text, code)),
-            )
-            if phrase_frequency is not None
-            else None
+                char_frequency=char_frequency,
+                reading_frequency=reading_frequency,
+                phrase_frequency=phrase_frequency,
+                custom_ranks=custom_ranks,
+            ),
         )
-        if phrase_weight is not None:
-            weight = phrase_weight
-        if len(text) == 1 and code and reading_frequency is not None:
-            reading_sound_code = code[:2] if len(code) >= 2 else None
-            if reading_sound_code is not None:
-                reading_weight = reading_frequency.sound_weight(text, reading_sound_code)
-                is_substantial = reading_frequency.is_substantial_sound(
-                    text, reading_sound_code
-                )
-            else:
-                reading_key = code[0]
-                reading_weight = reading_frequency.weight(text, reading_key)
-                is_substantial = reading_frequency.is_substantial(text, reading_key)
-
-            if len(code) == 1 and reading_weight is None:
-                weight += reading_frequency.max_weights.get(text, 0)
-            elif reading_weight is None or not is_substantial:
-                weight = 100 + (reading_weight or 0)
-            else:
-                weight += reading_weight
+        for index, (text, code) in enumerate(entries)
+    ]
+    weighted_entries = apply_one_key_concessions(weighted_entries, custom_ranks)
+    for text, code, weight in weighted_entries:
         output.append(f"{text}\t{code}\t{weight}")
 
     output_path.write_text("\n".join(output) + "\n", encoding="utf-8")

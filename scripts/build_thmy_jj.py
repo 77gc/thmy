@@ -7,12 +7,14 @@ import sys
 from pathlib import Path
 
 from build_thmy import (
+    AuxEntry,
     iter_aux_codes,
     iter_custom_entries,
     iter_phrase_reading_overrides,
+    all_sound_codes,
+    extend_low_weight_aux_overflows,
     phrase_char_codes,
     primary_sound_codes,
-    substantial_sound_codes,
 )
 from char_frequency import CharFrequency, PhraseFrequency, ReadingFrequency
 
@@ -179,7 +181,7 @@ def main() -> int:
     )
     custom_ranks = load_custom_ranks(args.custom_entries)
     primary_codes = primary_sound_codes(reading_frequency)
-    single_char_codes = substantial_sound_codes(reading_frequency)
+    single_char_codes = all_sound_codes(reading_frequency)
 
     aux_codes: dict[str, list[str]] = {}
     for aux_path in args.aux_codes:
@@ -198,14 +200,27 @@ def main() -> int:
     custom_count = 0
     phrase_count = 0
     skipped_count = 0
+    aux_extension_count = 0
 
+    aux_entries: list[AuxEntry] = []
     for text, primary_code in primary_codes.items():
         for sound_code in single_char_codes.get(text, [primary_code]):
             if add_entry(entries, seen, text, sound_code):
                 char_count += 1
             for aux_code in aux_codes.get(text, []):
-                if add_entry(entries, seen, text, f"{sound_code};{aux_code}"):
-                    aux_count += 1
+                aux_entries.append(
+                    AuxEntry(text=text, sound_code=sound_code, aux_code=aux_code)
+                )
+
+    aux_entries, aux_extension_count = extend_low_weight_aux_overflows(
+        entries=aux_entries,
+        char_frequency=char_frequency,
+        reading_frequency=reading_frequency,
+        separator=";",
+    )
+    for aux_entry in aux_entries:
+        if add_entry(entries, seen, aux_entry.text, aux_entry.full_code(";")):
+            aux_count += 1
 
     for custom_entries in args.custom_entries:
         for code, text in iter_custom_entries(Path(custom_entries)):
@@ -246,6 +261,7 @@ def main() -> int:
         "build_thmy_jj:",
         f"chars={char_count}",
         f"aux_codes={aux_count}",
+        f"aux_extensions={aux_extension_count}",
         f"custom_entries={custom_count}",
         f"phrases={phrase_count}",
         f"skipped_phrases={skipped_count}",

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -15,6 +16,8 @@ from char_frequency import (
 
 
 MAX_PURE_PHRASE_CODE_LENGTH = 32
+ONE_KEY_CANDIDATE_LIMIT = 4
+AUX_QUICK_SELECT_LIMIT = 4
 DVORAK_LEFT_KEYS = set("pyaoeuiqjkx")
 DVORAK_FINGERS = {
     "a": "L5",
@@ -84,6 +87,18 @@ e2=p11+p12+p21+p22
 e3=p11+p21+p31+p32
 a4=p11+p21+p31+n11
 [Data]"""
+
+
+@dataclass(frozen=True)
+class AuxEntry:
+    text: str
+    sound_code: str
+    aux_code: str
+
+    def full_code(self, separator: str = "") -> str:
+        if separator:
+            return f"{self.sound_code}{separator}{self.aux_code}"
+        return f"{self.sound_code}{self.aux_code}"
 
 
 def iter_source_entries(path: Path) -> list[tuple[str, str]]:
@@ -226,12 +241,14 @@ def primary_sound_codes(reading_frequency: ReadingFrequency) -> dict[str, str]:
     return primary_codes
 
 
-def substantial_sound_codes(reading_frequency: ReadingFrequency) -> dict[str, list[str]]:
+def all_sound_codes(reading_frequency: ReadingFrequency) -> dict[str, list[str]]:
     codes: dict[str, list[tuple[tuple[object, ...], str]]] = {}
     for (text, sound_code), weight in reading_frequency.sound_weights.items():
-        if not reading_frequency.is_substantial_sound(text, sound_code):
-            continue
-        sort_key: tuple[object, ...] = (-weight, sound_code)
+        sort_key: tuple[object, ...] = (
+            0 if reading_frequency.is_substantial_sound(text, sound_code) else 1,
+            -weight,
+            sound_code,
+        )
         codes.setdefault(text, []).append((sort_key, sound_code))
 
     output: dict[str, list[str]] = {}
@@ -239,6 +256,17 @@ def substantial_sound_codes(reading_frequency: ReadingFrequency) -> dict[str, li
         text_codes.sort(key=lambda item: item[0])
         output[text] = [sound_code for _sort_key, sound_code in text_codes]
     return output
+
+
+def substantial_sound_codes(reading_frequency: ReadingFrequency) -> dict[str, list[str]]:
+    return {
+        text: [
+            sound_code
+            for sound_code in sound_codes
+            if reading_frequency.is_substantial_sound(text, sound_code)
+        ]
+        for text, sound_codes in all_sound_codes(reading_frequency).items()
+    }
 
 
 def phrase_char_codes(
@@ -270,12 +298,128 @@ def pure_phrase_code(full_codes: list[str]) -> Optional[str]:
     return raw_code
 
 
+def phrase_codes_for_source(
+    source_entries: list[tuple[str, str]],
+    char_codes: dict[str, str],
+    phrase_reading_overrides: dict[str, dict[str, str]],
+) -> set[str]:
+    codes: set[str] = set()
+    seen_phrases: set[str] = set()
+    for _source_code, text in source_entries:
+        if len(text) <= 1 or text in seen_phrases:
+            continue
+        seen_phrases.add(text)
+        full_codes = phrase_char_codes(text, char_codes, phrase_reading_overrides)
+        if full_codes is None:
+            continue
+        short_code = phrase_code(full_codes)
+        if short_code is not None:
+            codes.add(short_code)
+        pure_code = pure_phrase_code(full_codes)
+        if pure_code is not None:
+            codes.add(pure_code)
+    return codes
+
+
+def aux_entry_weight(
+    entry: AuxEntry,
+    index: int,
+    char_frequency: CharFrequency,
+    reading_frequency: ReadingFrequency,
+) -> int:
+    reading_weight = reading_frequency.sound_weight(entry.text, entry.sound_code)
+    if reading_weight is None:
+        return 100
+    if not reading_frequency.is_substantial_sound(entry.text, entry.sound_code):
+        return 100 + reading_weight
+    return char_frequency.rime_weight(entry.text, index, 1)
+
+
+def choose_extended_aux_code(
+    entry: AuxEntry,
+    used_codes: set[str],
+    separator: str = "",
+) -> str | None:
+    best_aux_code: str | None = None
+    best_key: tuple[object, ...] | None = None
+    for key in "abcdefghijklmnopqrstuvwxyz":
+        aux_code = entry.aux_code + key
+        candidate = AuxEntry(
+            text=entry.text,
+            sound_code=entry.sound_code,
+            aux_code=aux_code,
+        )
+        if candidate.full_code(separator) in used_codes:
+            continue
+        sort_key = aux_comfort_key(entry.sound_code, aux_code)
+        if best_key is None or sort_key < best_key:
+            best_key = sort_key
+            best_aux_code = aux_code
+    return best_aux_code
+
+
+def extend_low_weight_aux_overflows(
+    entries: list[AuxEntry],
+    char_frequency: CharFrequency,
+    reading_frequency: ReadingFrequency,
+    reserved_codes: set[str] | None = None,
+    separator: str = "",
+) -> tuple[list[AuxEntry], int]:
+    used_codes = {entry.full_code(separator) for entry in entries}
+    if reserved_codes:
+        used_codes.update(reserved_codes)
+
+    by_code: dict[str, list[tuple[int, AuxEntry]]] = {}
+    for index, entry in enumerate(entries):
+        by_code.setdefault(entry.full_code(separator), []).append((index, entry))
+
+    replacements: dict[int, AuxEntry] = {}
+    for _code, code_entries in by_code.items():
+        if len(code_entries) <= AUX_QUICK_SELECT_LIMIT:
+            continue
+        ordered = sorted(
+            code_entries,
+            key=lambda item: (
+                -aux_entry_weight(
+                    entry=item[1],
+                    index=item[0],
+                    char_frequency=char_frequency,
+                    reading_frequency=reading_frequency,
+                ),
+                item[0],
+                item[1].text,
+            ),
+        )
+        for index, entry in ordered[AUX_QUICK_SELECT_LIMIT:]:
+            if len(entry.aux_code) != 1:
+                continue
+            if reading_frequency.is_substantial_sound(entry.text, entry.sound_code):
+                continue
+            aux_code = choose_extended_aux_code(entry, used_codes, separator)
+            if aux_code is None:
+                continue
+            replacement = AuxEntry(
+                text=entry.text,
+                sound_code=entry.sound_code,
+                aux_code=aux_code,
+            )
+            replacements[index] = replacement
+            used_codes.add(replacement.full_code(separator))
+
+    if not replacements:
+        return entries, 0
+    return [
+        replacements.get(index, entry)
+        for index, entry in enumerate(entries)
+    ], len(replacements)
+
+
 def one_key_abbrevs(
     char_codes: dict[str, str],
     char_frequency: CharFrequency,
     reading_frequency: ReadingFrequency,
     overrides: dict[str, str] | None = None,
-) -> dict[str, tuple[str, str]]:
+) -> dict[str, list[tuple[str, str]]]:
     candidates: dict[str, list[tuple[tuple[object, ...], str, str]]] = {}
 
     for index, (text, code) in enumerate(char_codes.items()):
@@ -304,44 +448,22 @@ def one_key_abbrevs(
     for key_candidates in candidates.values():
         key_candidates.sort(key=lambda item: item[0])
 
-    selected: dict[str, tuple[str, str]] = {}
-    used_text: set[str] = set()
-    remaining_keys = set(candidates)
-
-    while remaining_keys:
-        best_choice: tuple[tuple[object, ...], str, str, str] | None = None
-        empty_keys: set[str] = set()
-        for key in sorted(remaining_keys):
-            available = next(
-                (
-                    (sort_key, code, text)
-                    for sort_key, code, text in candidates[key]
-                    if text not in used_text
-                ),
-                None,
-            )
-            if available is None:
-                empty_keys.add(key)
-                continue
-            sort_key, code, text = available
-            choice = (sort_key, key, code, text)
-            if best_choice is None or choice < best_choice:
-                best_choice = choice
-
-        remaining_keys -= empty_keys
-        if best_choice is None:
-            break
-
-        _sort_key, key, code, text = best_choice
-        selected[key] = (code, text)
-        used_text.add(text)
-        remaining_keys.remove(key)
+    selected: dict[str, list[tuple[str, str]]] = {}
+    for key, key_candidates in candidates.items():
+        selected[key] = [
+            (code, text) for _sort_key, code, text in key_candidates[:ONE_KEY_CANDIDATE_LIMIT]
+        ]
 
     if overrides:
         for key, text in overrides.items():
             for _sort_key, code, cand_text in candidates.get(key, []):
                 if cand_text == text:
-                    selected[key] = (code, text)
+                    rest = [
+                        item
+                        for item in selected.get(key, [])
+                        if item[1] != text
+                    ]
+                    selected[key] = [(code, text), *rest][:ONE_KEY_CANDIDATE_LIMIT]
                     break
     return selected
 
@@ -384,7 +506,7 @@ def main() -> int:
     char_frequency = CharFrequency.load(args.char_frequency)
     reading_frequency = ReadingFrequency.load(args.reading_frequency)
     primary_codes = primary_sound_codes(reading_frequency)
-    single_char_codes = substantial_sound_codes(reading_frequency)
+    single_char_codes = all_sound_codes(reading_frequency)
     aux_codes: dict[str, list[str]] = {}
     for aux_path in args.aux_codes:
         aux_codes.update(iter_aux_codes(Path(aux_path)))
@@ -400,6 +522,7 @@ def main() -> int:
     char_sound_count = 0
     custom_count = 0
     aux_count = 0
+    aux_extension_count = 0
 
     one_keys = one_key_abbrevs(
         primary_codes,
@@ -417,13 +540,14 @@ def main() -> int:
         output.append(f"{key}\t{text}")
         one_key_count += 1
 
-    for key, (_full_code, text) in sorted(one_keys.items()):
-        item = (key, text)
-        if item in seen_output:
-            continue
-        seen_output.add(item)
-        output.append(f"{key}\t{text}")
-        one_key_count += 1
+    for key, key_entries in sorted(one_keys.items()):
+        for _full_code, text in key_entries:
+            item = (key, text)
+            if item in seen_output:
+                continue
+            seen_output.add(item)
+            output.append(f"{key}\t{text}")
+            one_key_count += 1
 
     for text, code in primary_codes.items():
         for single_code in single_char_codes.get(text, [code]):
@@ -434,18 +558,39 @@ def main() -> int:
             output.append(f"{single_code}\t{text}")
             char_sound_count += 1
 
+    aux_entries: list[AuxEntry] = []
     for text, text_aux_codes in sorted(aux_codes.items()):
         for sound_code in single_char_codes.get(text, []):
             aux_code = min(
                 text_aux_codes,
                 key=lambda item: aux_comfort_key(sound_code, item),
             )
-            item = (f"{sound_code}{aux_code}", text)
-            if item in seen_output:
-                continue
-            seen_output.add(item)
-            output.append(f"{item[0]}\t{item[1]}")
-            aux_count += 1
+            aux_entries.append(
+                AuxEntry(text=text, sound_code=sound_code, aux_code=aux_code)
+            )
+
+    reserved_codes = phrase_codes_for_source(
+        source_entries=source_entries,
+        char_codes=primary_codes,
+        phrase_reading_overrides=phrase_reading_overrides,
+    )
+    for custom_entries in args.custom_entries:
+        for code, _text in iter_custom_entries(Path(custom_entries)):
+            reserved_codes.add(code)
+    aux_entries, aux_extension_count = extend_low_weight_aux_overflows(
+        entries=aux_entries,
+        char_frequency=char_frequency,
+        reading_frequency=reading_frequency,
+        reserved_codes=reserved_codes,
+    )
+
+    for aux_entry in aux_entries:
+        item = (aux_entry.full_code(), aux_entry.text)
+        if item in seen_output:
+            continue
+        seen_output.add(item)
+        output.append(f"{item[0]}\t{item[1]}")
+        aux_count += 1
 
     for custom_entries in args.custom_entries:
         for code, text in iter_custom_entries(Path(custom_entries)):
@@ -496,6 +641,7 @@ def main() -> int:
         f"one_key_abbrevs={one_key_count}",
         f"char_sound_codes={char_sound_count}",
         f"aux_codes={aux_count}",
+        f"aux_extensions={aux_extension_count}",
         f"custom_entries={custom_count}",
         f"phrases={phrase_count}",
         f"pure_phrases={pure_phrase_count}",
