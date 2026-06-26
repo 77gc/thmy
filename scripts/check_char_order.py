@@ -95,6 +95,7 @@ def main() -> int:
         ReadingFrequency.load(args.reading_frequency) if args.reading_frequency else None
     )
     entries = load_rime_chars(Path(args.dictionary))
+    custom_entries = load_custom_entries(args.custom_entries)
     one_key_top = one_key_tops(entries)
     failures: list[str] = []
 
@@ -106,6 +107,7 @@ def main() -> int:
             if (
                 text in ranks
                 and not is_low_weight_alternate(text, code, reading_frequency)
+                and (text, code) not in custom_entries
                 and not (len(code) == 2 and one_key_top.get(code[0]) == text)
             )
         ][: args.limit]

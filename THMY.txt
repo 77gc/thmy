@@ -12663,6 +12663,8 @@ fniu	分内之事
 fnjc	飞鸟尽良弓藏
 fnle	服你了
 fnmu	非你莫属
+fnym	冯·诺伊曼
+fnym	冯诺伊曼
 fo	反
 fo	范
 fo	犯

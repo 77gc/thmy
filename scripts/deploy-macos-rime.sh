@@ -9,7 +9,7 @@ SHARED_DIR="${SHARED_DIR:-$SQUIRREL_DIR/SharedSupport}"
 DEPLOYER="${DEPLOYER:-$SQUIRREL_DIR/MacOS/rime_deployer}"
 THMY_DEPLOY_VERBOSE="${THMY_DEPLOY_VERBOSE:-0}"
 THMY_WITH_JJ="${THMY_WITH_JJ:-0}"
-SQUIRREL_CANDIDATE_FORMAT='[label]- [candidate] [comment]'
+SQUIRREL_CANDIDATE_FORMAT='[label] [candidate] [comment]'
 
 step() {
   printf '\n==> %s\n' "$*"

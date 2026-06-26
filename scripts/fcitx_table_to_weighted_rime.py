@@ -8,6 +8,9 @@ from pathlib import Path
 from char_frequency import CharFrequency, PhraseFrequency, ReadingFrequency
 
 
+CUSTOM_SINGLE_CHAR_WEIGHT_BONUS = 1_000_000
+
+
 def load_custom_ranks(paths: list[str]) -> dict[tuple[str, str], int]:
     ranks: dict[tuple[str, str], int] = {}
     rank = 0
@@ -86,6 +89,8 @@ def entry_weight(
         is_substantial = reading_frequency.is_substantial(text, reading_key)
 
     if is_custom_entry:
+        if len(code) > 1:
+            return weight + CUSTOM_SINGLE_CHAR_WEIGHT_BONUS
         return weight
     if reading_weight is None:
         return 100
