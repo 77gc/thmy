@@ -89,7 +89,7 @@ def entry_weight(
         is_substantial = reading_frequency.is_substantial(text, reading_key)
 
     if is_custom_entry:
-        if len(code) > 1:
+        if len(text) == 1:
             return weight + CUSTOM_SINGLE_CHAR_WEIGHT_BONUS
         return weight
     if reading_weight is None:
