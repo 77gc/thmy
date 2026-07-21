@@ -283,7 +283,7 @@ preset_keyboards:
     author: thmy
     label_transform: uppercase
     keys:
-      - {click: a, hint: "ao", key_back_color: bdark, key_text_color: th1, long_click: select_all, swipe_up: A, width: 12.5}
+      - {click: BackSpace, key_back_color: bbs, key_text_color: tbs, width: 12.5}
       - {click: p, hint: "ei", key_back_color: bgray, key_text_color: th1, long_click: "~", swipe_up: P, width: 12.5}
       - {click: y, hint: "a", key_back_color: bdark, key_text_color: th1, long_click: "`", swipe_up: Y, width: 12.5}
       - {click: f, hint: "ue", key_back_color: bgray, key_text_color: th1, swipe_up: F, width: 12.5}
@@ -291,15 +291,16 @@ preset_keyboards:
       - {click: c, hint: "ian", key_back_color: bgray, key_text_color: th1, long_click: copy, swipe_up: C, width: 12.5}
       - {click: r, hint: "N/iao", key_back_color: bdark, key_text_color: th1, long_click: "\\", swipe_up: R, width: 12.5}
       - {click: l, hint: "ing/uai", key_back_color: bgray, key_text_color: th1, long_click: "|", swipe_up: L, width: 12.5}
-      - {click: o, hint: "an", key_back_color: bgray, key_text_color: th2, long_click: copy, swipe_up: O, width: 11.111}
-      - {click: e, hint: "e", key_back_color: bdark, key_text_color: th2, long_click: cut, swipe_up: E, width: 11.111}
-      - {click: u, hint: "O/uo", key_back_color: bgn, key_text_color: tgn, long_click: paste, swipe_up: U, width: 11.111}
-      - {click: i, hint: "eng", key_back_color: bdark, key_text_color: th2, long_click: undo, swipe_down: date_time, swipe_up: I, width: 11.111}
-      - {click: d, hint: "un", key_back_color: bgray, key_text_color: th2, long_click: Tab1, swipe_up: D, width: 11.111}
-      - {click: h, hint: "R/uan", key_back_color: bgn, key_text_color: tgn, swipe_up: H, width: 11.111}
-      - {click: t, hint: "ou", key_back_color: bgray, key_text_color: th2, swipe_up: T, width: 11.111}
-      - {click: n, hint: "i", key_back_color: bdark, key_text_color: th2, long_click: Keyboard_number, swipe_up: N, width: 11.111}
-      - {click: s, hint: "ang", key_back_color: bgray, key_text_color: th2, swipe_up: S, width: 11.112}
+      - {click: a, hint: "ao", key_back_color: bdark, key_text_color: th2, long_click: select_all, swipe_up: A, width: 10}
+      - {click: o, hint: "an", key_back_color: bgray, key_text_color: th2, long_click: copy, swipe_up: O, width: 10}
+      - {click: e, hint: "e", key_back_color: bdark, key_text_color: th2, long_click: cut, swipe_up: E, width: 10}
+      - {click: u, hint: "O/uo", key_back_color: bgn, key_text_color: tgn, long_click: paste, swipe_up: U, width: 10}
+      - {click: i, hint: "eng", key_back_color: bdark, key_text_color: th2, long_click: undo, swipe_down: date_time, swipe_up: I, width: 10}
+      - {click: d, hint: "un", key_back_color: bgray, key_text_color: th2, long_click: Tab1, swipe_up: D, width: 10}
+      - {click: h, hint: "R/uan", key_back_color: bgn, key_text_color: tgn, swipe_up: H, width: 10}
+      - {click: t, hint: "ou", key_back_color: bgray, key_text_color: th2, swipe_up: T, width: 10}
+      - {click: n, hint: "i", key_back_color: bdark, key_text_color: th2, long_click: Keyboard_number, swipe_up: N, width: 10}
+      - {click: s, hint: "ang", key_back_color: bgray, key_text_color: th2, swipe_up: S, width: 10}
       - {click: Shift_L, composing: delimiter, double_click: Shift_L3, hilited_key_back_color: benter, key_back_color: bbs, key_text_color: tbs, label: "⇧", label_symbol: "⇧",long_click: "?", width: 15}
       - {click: q, hint: "i/ong", key_back_color: bgray, key_text_color: th3, long_click: cut, swipe_up: Q, width: 9}
       - {click: j, hint: "u", key_back_color: bdark, key_text_color: th3, swipe_up: J, width: 9}
