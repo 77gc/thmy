@@ -27429,6 +27429,7 @@ jjiu	掎角之势
 jjix	眷眷之心
 jjiz	矩阵
 jjizzniu	句斟字酌
+jjj	急急急
 jjjc	举荐
 jjjf	拒绝
 jjjj	将计就计
@@ -52088,6 +52089,7 @@ tqha	同好
 tqhd	通婚
 tqhk	痛悔
 tqhq	通红
+tqhs	同行
 tqhu	同伙
 tqhupiis	通货膨胀
 tqhw	通话

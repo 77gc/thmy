@@ -127,6 +127,22 @@ Android 同文可使用：
 - `android/default.custom.yaml`
 - `android/thmy_dvorak.trime.yaml`
 
+### 同步到安卓
+
+用 `scripts/push-android-trime.sh` 可把完整 `android/` 目录同步到任意一台已授权的 Android 设备：
+
+```sh
+./scripts/push-android-trime.sh
+```
+
+连接多台设备时指定序列号：
+
+```sh
+./scripts/push-android-trime.sh --serial 设备序列号
+```
+
+脚本只推送文件并更新时间，**不会执行部署**。可用 `--check` 只检查连接与本机文件；同步后在手机同文输入法中手动点“部署”。
+
 ## 码值反查
 
 `thmy` 和 `thmy_jj` 都支持 `//` 反查最近一次上屏的字词码值。

@@ -178,7 +178,7 @@ step "Rime 用户目录：$RIME_DIR"
 step "部署器路径：$DEPLOYER"
 
 run_step "创建 Rime 用户目录" mkdir -p "$RIME_DIR"
-run_step "构建 macOS/Rime 码表和词典" env THMY_SYNC_PORTS=0 sh "$ROOT_DIR/scripts/build.sh"
+run_step "构建 Rime 码表和词典并同步各端" env THMY_SYNC_PORTS=1 sh "$ROOT_DIR/scripts/build.sh"
 run_step "复制团码文件" copy_thmy_files
 run_step "更新鼠须管提示样式" patch_squirrel_style
 run_step "编译团码-ym" "$DEPLOYER" --compile "$RIME_DIR/thmy.schema.yaml" "$RIME_DIR" "$SHARED_DIR" "$RIME_DIR/build"

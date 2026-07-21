@@ -5,7 +5,8 @@ export PYTHONDONTWRITEBYTECODE=1
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 THMY_WITH_JJ="${THMY_WITH_JJ:-0}"
-THMY_SYNC_PORTS="${THMY_SYNC_PORTS:-0}"
+# rime/ 是唯一权威输出；构建后默认同步到 Android 和 Windows。
+THMY_SYNC_PORTS="${THMY_SYNC_PORTS:-1}"
 FREQ_FILE="$ROOT_DIR/data/hanzi_frequency_junda.tsv"
 READING_FREQ_FILE="$ROOT_DIR/data/hanzi_reading_frequency_baishuang_8105.tsv"
 CUSTOM_FILE="$ROOT_DIR/data/thmy_custom.tsv"
