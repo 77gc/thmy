@@ -9,6 +9,10 @@ from char_frequency import CharFrequency, PhraseFrequency, ReadingFrequency
 
 
 CUSTOM_SINGLE_CHAR_WEIGHT_BONUS = 1_000_000
+CUSTOM_ONE_KEY_SINGLE_CHAR_OVERRIDES = {
+    ("没", "m"),
+    ("小", "x"),
+}
 
 
 def load_custom_ranks(paths: list[str]) -> dict[tuple[str, str], int]:
@@ -88,8 +92,10 @@ def entry_weight(
         reading_weight = reading_frequency.weight(text, reading_key)
         is_substantial = reading_frequency.is_substantial(text, reading_key)
 
+    if (text, code) in CUSTOM_ONE_KEY_SINGLE_CHAR_OVERRIDES:
+        return weight + CUSTOM_SINGLE_CHAR_WEIGHT_BONUS
     if is_custom_entry:
-        if len(text) == 1:
+        if len(code) > 1:
             return weight + CUSTOM_SINGLE_CHAR_WEIGHT_BONUS
         return weight
     if reading_weight is None:
