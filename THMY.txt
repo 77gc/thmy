@@ -29226,6 +29226,7 @@ jr	燋
 jr	璬
 jr	皦
 jr	皭
+jr	觉
 jr	校
 jr	僬
 jr	䴔
@@ -29273,6 +29274,7 @@ jrdy	较大
 jre	交
 jre	蛟
 jre	皦
+jre	觉
 jree	交恶
 jrf	嚼
 jrf	鹪
@@ -32417,8 +32419,8 @@ kxtq	开通
 kxts	开膛
 kxts	口香糖
 kxtt	开头
+kxtu	开拓
 kxtv	开帖
-kxty	开拓
 kxue	开设
 kxuh	开涮
 kxuj	楷书
@@ -35260,8 +35262,8 @@ lois	烂账
 loit	兰州
 loj	览
 lojc	揽件
-lojf	懒觉
 lojn	拦击
+lojr	懒觉
 lojv	拦截
 lok	婪
 loke	揽客
@@ -52906,6 +52908,7 @@ tunndxuk	拖泥带水
 tunr	鸵鸟
 tunriice	鸵鸟政策
 tuo	橐
+tupj	拓扑
 tupm	脱贫
 tupminfj	脱贫致富
 tupn	脱皮
@@ -53428,7 +53431,6 @@ tyn	獭
 tyni	太阳能
 tyo	闼
 typd	糖衣炮弹
-typj	拓扑
 typl	踏平
 typutvxvwjmnvj	踏破铁鞋无觅处
 tyq	铊
@@ -54920,7 +54922,7 @@ ukai	适可而止
 ukb	帨
 ukbc	水边
 ukbi	水泵
-ukbjhajf	睡不好觉
+ukbjhajr	睡不好觉
 ukbjia	睡不着
 ukbjxl	睡不醒
 ukbp	水杯
@@ -54946,7 +54948,7 @@ ukfr	矢口否认
 ukfs	睡房
 ukfy	税法
 ukfz	水分
-ukgehajf	睡个好觉
+ukgehajr	睡个好觉
 ukgguose	水光山色
 ukgh	水管
 ukgl	水怪
@@ -54972,10 +54974,10 @@ ukisvhga	水涨船高
 ukiy	水闸
 ukjb	水酒
 ukjc	水碱
-ukjf	睡觉
 ukjl	水晶
 ukjl	首开纪录
 ukjm	税金
+ukjr	睡觉
 ukjv	水解
 ukkezxit	水可载舟
 ukkh	税款
@@ -54995,7 +54997,7 @@ ukln	水利
 uklngqvi	水利工程
 uklnlxhulnqj	水里来火里去
 uklnujnb	水利枢纽
-uklojf	睡懒觉
+uklojr	睡懒觉
 uklqtt	水龙头
 ukluunvj	水落石出
 uklxtjyo	水来土掩
@@ -55124,10 +55126,10 @@ uliu	擅离职守
 uliz	率真
 uljc	衰减
 uljd	生力军
-uljf	睡懒觉
 uljg	沙拉酱
 ulji	十六进制
 uljr	摔跤
+uljr	睡懒觉
 uljv	衰竭
 uljw	神龙见首不见尾
 uljx	声泪俱下
@@ -56068,6 +56070,7 @@ uoqj	山区
 uoql	煽情
 uoqluklk	山青水绿
 uoqlukxb	山清水秀
+uoqnjd	单琦俊
 uoqqukjm	山穷水尽
 uor	杉
 uor	钐
@@ -61383,7 +61386,6 @@ wjiu	污浊
 wjiz	误诊
 wjjc	物件
 wjjcbjck	无坚不摧
-wjjf	午觉
 wjjg	武将
 wjjgusxwahqbsu	吾将上下而求索
 wjjj	舞剧
@@ -61399,6 +61401,7 @@ wjjnkeun	无计可施
 wjjnkevi	无机可乘
 wjjnkexd	无迹可寻
 wjjnyjun	无济于事
+wjjr	午觉
 wjjrdylt	五角大楼
 wjjv	误解
 wjjw	物价

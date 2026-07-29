@@ -1,6 +1,14 @@
 # text	overrides
 # Overrides are tone-less pinyin for characters whose phrase reading differs
 # from the character's primary reading. Multiple overrides may be separated by tabs.
+拓扑	拓:tuo
+开拓	拓:tuo
+午觉	觉:jiao
+睡个好觉	觉:jiao
+睡觉	觉:jiao
+睡懒觉	觉:jiao
+睡不好觉	觉:jiao
+懒觉	觉:jiao
 了解	了:liao
 了解一下	了:liao
 了断	了:liao

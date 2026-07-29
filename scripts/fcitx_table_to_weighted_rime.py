@@ -13,6 +13,10 @@ CUSTOM_ONE_KEY_SINGLE_CHAR_OVERRIDES = {
     ("没", "m"),
     ("小", "x"),
 }
+CUSTOM_TOP_CANDIDATE_OVERRIDES = {
+    ("为什么", "wum"),
+}
+CUSTOM_TOP_CANDIDATE_WEIGHT = 30_000_000
 
 
 def load_custom_ranks(paths: list[str]) -> dict[tuple[str, str], int]:
@@ -66,6 +70,8 @@ def entry_weight(
     custom_ranks: dict[tuple[str, str], int],
 ) -> int:
     weight = char_frequency.rime_weight(text, index, total_entries)
+    if (text, code) in CUSTOM_TOP_CANDIDATE_OVERRIDES:
+        return CUSTOM_TOP_CANDIDATE_WEIGHT
     phrase_weight = (
         phrase_frequency.rime_weight(
             text=text,
